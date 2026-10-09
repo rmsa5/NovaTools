@@ -164,7 +164,7 @@ class ForegroundAppWatcherService @Inject constructor() : AccessibilityService()
                     addAction(action)
                 }
             }
-            registerReceiver(batteryLevelReceiver, intentFilter)
+            registerReceiver(batteryLevelReceiver, intentFilter, RECEIVER_NOT_EXPORTED)
         } else if (!newValue && chargeLimitEnabled) {
             unregisterReceiver(batteryLevelReceiver)
         }
@@ -178,7 +178,7 @@ class ForegroundAppWatcherService @Inject constructor() : AccessibilityService()
                     addAction(action)
                 }
             }
-            registerReceiver(videoOutputReceiver, intentFilter)
+            registerReceiver(videoOutputReceiver, intentFilter, RECEIVER_EXPORTED)
         } else if (!newValue && videoOutputOverrideEnabled) {
             unregisterReceiver(videoOutputReceiver)
         }

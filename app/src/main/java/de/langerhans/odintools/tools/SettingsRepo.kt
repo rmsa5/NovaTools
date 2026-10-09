@@ -1,6 +1,7 @@
 package de.langerhans.odintools.tools
 
 import de.langerhans.odintools.BuildConfig
+import de.langerhans.odintools.service.ForegroundAppWatcherService
 import javax.inject.Inject
 
 class SettingsRepo @Inject constructor(
@@ -25,7 +26,7 @@ class SettingsRepo @Inject constructor(
         if (currentServices.contains(PACKAGE)) return
 
         executor.executeAsRoot(
-            "settings put secure $KEY_ACCESSIBILITY_SERVICES $PACKAGE/$PACKAGE.service.ForegroundAppWatcherService:$currentServices"
+            "settings put secure $KEY_ACCESSIBILITY_SERVICES $PACKAGE/${ForegroundAppWatcherService::class.java.name}:$currentServices"
                 .trimEnd(':'),
         )
     }

@@ -1,5 +1,5 @@
 <resources>
-    <string name="appName">OdinTools</string>
+    <string name="appName">NovaTools</string>
     <string name="xbox">Xbox</string>
     <string name="odin">Odin</string>
     <string name="disconnect">Disconnect</string>
@@ -45,7 +45,7 @@
     <string name="videoOutputOverride">External override</string>
     <string name="videoOutputOverrideDescription">Set up override when connected to an external display. Switch off to disable.</string>
 
-    <string name="a11yDescription">Used by OdinTools to detect running apps for dynamic switching of button settings.</string>
+    <string name="a11yDescription">Used by NovaTools to detect running apps for dynamic switching of button settings.</string>
 
     <string name="appOverrides">App overrides</string>
     <string name="appOverridesDescription">Set up overrides per app. Switch off to globally disable app overrides.</string>
