@@ -20,10 +20,8 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) {
             return
         }
-        val saturation = prefs.saturationOverride
-        if (saturation != 1.0f) {
-            settings.setSfSaturation(saturation)
-        }
+        // Always applied (even 1.0) so the saturation NovaTools remembers as current matches reality after a reboot
+        settings.setSfSaturation(prefs.saturationOverride)
         val vibrationStrength = prefs.vibrationStrength
         if (vibrationStrength != 0) {
             settings.vibrationStrength = vibrationStrength

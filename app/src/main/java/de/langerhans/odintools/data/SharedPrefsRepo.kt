@@ -108,6 +108,16 @@ class SharedPrefsRepo @Inject constructor(
         get() = prefs.getFloat(KEY_VIDEO_OUTPUT_SATURATION, NO_SATURATION_CHANGE)
         set(value) = prefs.edit().putFloat(KEY_VIDEO_OUTPUT_SATURATION, value).apply()
 
+    /** Values saved when external display overrides were applied (JSON), or null when none are active. */
+    var displayOverrideSnapshot
+        get() = prefs.getString(KEY_DISPLAY_OVERRIDE_SNAPSHOT, null)
+        set(value) = prefs.edit().putString(KEY_DISPLAY_OVERRIDE_SNAPSHOT, value).apply()
+
+    /** The saturation NovaTools last applied to SurfaceFlinger (which can't be queried for it). */
+    var currentSfSaturation
+        get() = prefs.getFloat(KEY_CURRENT_SF_SATURATION, 1.0f)
+        set(value) = prefs.edit().putFloat(KEY_CURRENT_SF_SATURATION, value).apply()
+
     private var videoOutputOverrideEnabledListener: OnSharedPreferenceChangeListener? = null
 
     fun observeVideoOutputOverrideEnabledState(onVideoOutputOverrideEnabled: (newState: Boolean) -> Unit) {
@@ -142,6 +152,8 @@ class SharedPrefsRepo @Inject constructor(
         private const val KEY_VIDEO_OUTPUT_CONTROLLER_STYLE = "video_output_override_controller_style"
         private const val KEY_VIDEO_OUTPUT_ASPECT_RATIO = "video_output_override_aspect_ratio"
         private const val KEY_VIDEO_OUTPUT_SATURATION = "video_output_override_saturation"
+        private const val KEY_DISPLAY_OVERRIDE_SNAPSHOT = "display_override_snapshot"
+        private const val KEY_CURRENT_SF_SATURATION = "current_sf_saturation"
         private const val KEY_VIDEO_OUTPUT_L2R2_STYLE = "video_output_override_l2r2_style"
     }
 }

@@ -16,6 +16,7 @@ import de.langerhans.odintools.models.ControllerStyle.Unknown
 import de.langerhans.odintools.models.FanMode
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.models.PerfMode
+import de.langerhans.odintools.overrides.DisplayOverrideManager
 import de.langerhans.odintools.tools.BatteryLevelReceiver
 import de.langerhans.odintools.tools.ShellExecutor
 import de.langerhans.odintools.tools.VideoOutputReceiver
@@ -37,6 +38,9 @@ class ForegroundAppWatcherService @Inject constructor() : AccessibilityService()
 
     @Inject
     lateinit var prefs: SharedPrefsRepo
+
+    @Inject
+    lateinit var displayOverrideManager: DisplayOverrideManager
 
     private var batteryLevelReceiver: BatteryLevelReceiver = BatteryLevelReceiver()
     private var videoOutputReceiver: VideoOutputReceiver = VideoOutputReceiver()
@@ -106,7 +110,7 @@ class ForegroundAppWatcherService @Inject constructor() : AccessibilityService()
         }
 
         // Avoid conflicts with Video Output Override
-        if (!videoOutputOverrideEnabled || !videoOutputReceiver.overrideEnabled) {
+        if (!videoOutputOverrideEnabled || !displayOverrideManager.isActive) {
             ControllerStyle.getById(override.controllerStyle).takeIf {
                 it != Unknown
             }?.enable(executor) ?: run {
@@ -179,8 +183,12 @@ class ForegroundAppWatcherService @Inject constructor() : AccessibilityService()
                 }
             }
             registerReceiver(videoOutputReceiver, intentFilter, RECEIVER_EXPORTED)
+            // Catch up if a display is already connected, or undo overrides left over from before a restart
+            displayOverrideManager.syncWithConnectionState()
         } else if (!newValue && videoOutputOverrideEnabled) {
             unregisterReceiver(videoOutputReceiver)
+            // Switching the feature off restores everything right away
+            displayOverrideManager.onDisconnected()
         }
         videoOutputOverrideEnabled = newValue
     }

@@ -1,12 +1,14 @@
 package de.langerhans.odintools.tools
 
 import de.langerhans.odintools.BuildConfig
+import de.langerhans.odintools.data.SharedPrefsRepo
 import de.langerhans.odintools.service.ForegroundAppWatcherService
 import java.util.Locale
 import javax.inject.Inject
 
 class SettingsRepo @Inject constructor(
     private val executor: ShellExecutor,
+    private val prefs: SharedPrefsRepo,
 ) {
 
     fun applyRequiredSettings() {
@@ -46,7 +48,12 @@ class SettingsRepo @Inject constructor(
     fun setSfSaturation(value: Float) {
         // Locale.US: a French or Swiss locale would otherwise produce "0,9", which SurfaceFlinger can't parse
         executor.executeAsRoot("service call SurfaceFlinger 1022 f ${String.format(Locale.US, "%.2f", value)}")
+        prefs.currentSfSaturation = value
     }
+
+    /** The saturation last applied through [setSfSaturation]. */
+    val currentSaturation: Float
+        get() = prefs.currentSfSaturation
 
     fun enableChargingSeparation() {
         isChargingSeparation = true

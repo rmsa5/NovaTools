@@ -15,6 +15,8 @@ import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.models.L2R2Style.Analog
 import de.langerhans.odintools.models.L2R2Style.Both
 import de.langerhans.odintools.models.L2R2Style.Digital
+import de.langerhans.odintools.overrides.DisplayOverrideManager
+import de.langerhans.odintools.overrides.SaturationOverride
 import de.langerhans.odintools.tools.DeviceType.NOVA
 import de.langerhans.odintools.tools.DeviceType.ODIN2
 import de.langerhans.odintools.tools.DeviceUtils
@@ -35,6 +37,7 @@ class MainViewModel @Inject constructor(
     private val executor: ShellExecutor,
     private val settings: SettingsRepo,
     private val prefs: SharedPrefsRepo,
+    private val displayOverrideManager: DisplayOverrideManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiModel())
@@ -149,7 +152,12 @@ class MainViewModel @Inject constructor(
 
     fun saveSaturation(newValue: Float) {
         prefs.saturationOverride = newValue
-        settings.setSfSaturation(newValue)
+        // While docked with a docked saturation, the handheld value is only restored on disconnect:
+        // SurfaceFlinger's saturation is global, so applying it now would change the external display
+        val deferredUntilDisconnect = displayOverrideManager.updateSavedValue(SaturationOverride.ID, newValue.toString())
+        if (!deferredUntilDisconnect) {
+            settings.setSfSaturation(newValue)
+        }
         _uiState.update {
             it.copy(showSaturationDialog = false)
         }

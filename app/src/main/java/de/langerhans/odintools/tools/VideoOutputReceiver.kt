@@ -8,23 +8,13 @@ import android.os.Looper
 import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
 import de.langerhans.odintools.data.SharedPrefsRepo
-import de.langerhans.odintools.data.SharedPrefsRepo.Companion.NO_SATURATION_CHANGE
-import de.langerhans.odintools.models.AspectRatio
-import de.langerhans.odintools.models.ControllerStyle
-import de.langerhans.odintools.models.L2R2Style
+import de.langerhans.odintools.overrides.DisplayOverrideManager
 import de.langerhans.odintools.service.ForegroundAppWatcherService.Companion.OVERRIDE_DELAY
 import javax.inject.Inject
 
+/** Listens for the firmware's external display broadcasts and hands them to [DisplayOverrideManager]. */
 @AndroidEntryPoint
 class VideoOutputReceiver : BroadcastReceiver() {
-
-    var overrideEnabled = false
-
-    private var savedControllerStyle: ControllerStyle? = null
-    private var savedL2R2Style: L2R2Style? = null
-    private var savedForcedDisplaySize: String? = null
-    private var aspectRatioOverridden = false
-    private var saturationOverridden = false
 
     @Inject
     lateinit var executor: ShellExecutor
@@ -33,52 +23,10 @@ class VideoOutputReceiver : BroadcastReceiver() {
     lateinit var prefs: SharedPrefsRepo
 
     @Inject
-    lateinit var settings: SettingsRepo
+    lateinit var overrideManager: DisplayOverrideManager
 
-    private fun handleEvent(connected: Boolean?) {
-        if (connected == true && !overrideEnabled) {
-            // Save default styles
-            savedControllerStyle = ControllerStyle.getStyle(executor)
-            savedL2R2Style = L2R2Style.getStyle(executor)
-
-            // Apply style profile
-            ControllerStyle.getById(prefs.videoOutputControllerStyle).takeIf {
-                it != ControllerStyle.Unknown
-            }?.enable(executor)
-            L2R2Style.getById(prefs.videoOutputL2R2Style).takeIf {
-                it != L2R2Style.Unknown
-            }?.enable(executor)
-
-            // Aspect ratio: remember the current forced size (null = native) so undocking restores it exactly
-            val aspectRatio = AspectRatio.getById(prefs.videoOutputAspectRatio)
-            aspectRatioOverridden = aspectRatio != AspectRatio.Unknown
-            if (aspectRatioOverridden) {
-                savedForcedDisplaySize = AspectRatio.getForcedSize(executor)
-                aspectRatio.enable(executor)
-            }
-
-            // Saturation: the handheld screen is off while docked, so this only affects the external display
-            val saturation = prefs.videoOutputSaturation
-            saturationOverridden = saturation != NO_SATURATION_CHANGE
-            if (saturationOverridden) {
-                settings.setSfSaturation(saturation)
-            }
-
-            overrideEnabled = true
-        } else if (connected == false && overrideEnabled) {
-            // Reset to defaults
-            savedControllerStyle?.enable(executor)
-            savedL2R2Style?.enable(executor)
-            if (aspectRatioOverridden) {
-                AspectRatio.setForcedSize(executor, savedForcedDisplaySize)
-            }
-            if (saturationOverridden) {
-                // Back to the handheld saturation from the main "Display saturation" setting
-                settings.setSfSaturation(prefs.saturationOverride)
-            }
-
-            overrideEnabled = false
-        }
+    private fun handleEvent(connected: Boolean) {
+        if (connected) overrideManager.onConnected() else overrideManager.onDisconnected()
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -98,8 +46,7 @@ class VideoOutputReceiver : BroadcastReceiver() {
         val connected = if (extras?.containsKey("is_connected") == true) {
             extras.getBoolean("is_connected")
         } else {
-            // Fallback for firmwares that don't send is_connected (the Nova's broadcast extras are unknown so far):
-            // the Nova exposes the DisplayPort connection state as a system property
+            // Fallback for firmwares that don't send is_connected: the Nova exposes the DisplayPort state as a property
             executor.getStringProperty(KEY_DP_CONNECTED, "0") == "1"
         }
         Log.i(TAG, "External display connected: $connected")

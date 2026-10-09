@@ -19,24 +19,32 @@ sealed class AspectRatio(
     data object Ratio16x9 : AspectRatio("16_9", R.string.aspectRatio16x9)
     data object Unknown : AspectRatio("unknown", R.string.unknown)
 
-    fun enable(executor: ShellExecutor) {
-        when (this) {
-            Ratio16x9 -> setForcedSize(executor, SIZE_16X9)
-            Ratio4x3 -> setForcedSize(executor, null)
-            Unknown -> Unit
+    /** The forced size this ratio applies ([NATIVE_SIZE] = the panel's own size), or null for no change. */
+    val forcedSize: String?
+        get() = when (this) {
+            Ratio16x9 -> SIZE_16X9
+            Ratio4x3 -> NATIVE_SIZE
+            Unknown -> null
         }
-    }
 
     companion object {
         private const val SIZE_16X9 = "1080x1920"
 
-        /** The currently forced display size (e.g. "1080x1920"), or null if Android uses the panel's native size. */
-        fun getForcedSize(executor: ShellExecutor): String? = executor.executeAsRoot("wm size")
+        /** Stands for "no forced size": Android uses the panel's native size (4:3 on the Nova). */
+        const val NATIVE_SIZE = "native"
+
+        /**
+         * The forced display size (e.g. "1080x1920"), or null if Android uses the panel's native size.
+         *
+         * Reads the value Android stores (global setting display_size_forced, "1080,1920" or empty) rather than
+         * asking "wm size": while an external display is being removed, "wm size" can briefly report the native
+         * size before Android settles back on the stored one.
+         */
+        fun getForcedSize(executor: ShellExecutor): String? = executor.executeAsRoot("settings get global display_size_forced")
             .getOrNull()
-            ?.lineSequence()
-            ?.firstOrNull { it.startsWith("Override size:") }
-            ?.substringAfter(":")
             ?.trim()
+            ?.takeIf { it.isNotEmpty() && it != "null" }
+            ?.replace(',', 'x')
 
         /** Forces the given display size, or resets to the panel's native size if null. */
         fun setForcedSize(executor: ShellExecutor, size: String?) {
