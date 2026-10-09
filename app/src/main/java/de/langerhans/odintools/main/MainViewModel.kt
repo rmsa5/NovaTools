@@ -14,6 +14,7 @@ import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.models.L2R2Style.Analog
 import de.langerhans.odintools.models.L2R2Style.Both
 import de.langerhans.odintools.models.L2R2Style.Digital
+import de.langerhans.odintools.tools.DeviceType.NOVA
 import de.langerhans.odintools.tools.DeviceType.ODIN2
 import de.langerhans.odintools.tools.DeviceUtils
 import de.langerhans.odintools.tools.SettingsRepo
@@ -55,7 +56,7 @@ class MainViewModel @Inject constructor(
             MainUiModel(
                 deviceType = deviceType,
                 deviceVersion = deviceUtils.getDeviceVersion(),
-                showIncompatibleDeviceDialog = deviceType != ODIN2,
+                showIncompatibleDeviceDialog = deviceType != ODIN2 && deviceType != NOVA,
                 singlePressHomeEnabled = !settings.preventPressHome,
                 showPServerNotAvailableDialog = !executor.pServerAvailable,
                 overrideDelayEnabled = prefs.overrideDelay,
