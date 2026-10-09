@@ -24,8 +24,8 @@ data class MainUiModel(
     val showControllerStyleDialog: Boolean = false,
     val showL2r2StyleDialog: Boolean = false,
 
-    val showSaturationDialog: Boolean = false,
     val currentSaturation: Float = 1.0f,
+    val saturationDeferred: Boolean = false,
 
     val showVideoOutputOverrideDialog: Boolean = false,
     val videoOutputOverrideEnabled: Boolean = false,

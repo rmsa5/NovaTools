@@ -3,6 +3,7 @@ package de.langerhans.odintools.main
 import android.view.KeyEvent
 import androidx.compose.runtime.toMutableStateList
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.langerhans.odintools.R
 import de.langerhans.odintools.data.SharedPrefsRepo
@@ -22,10 +23,14 @@ import de.langerhans.odintools.tools.DeviceType.ODIN2
 import de.langerhans.odintools.tools.DeviceUtils
 import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.tools.ShellExecutor
+import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -41,6 +46,10 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiModel())
+
+    // Latest saturation to apply while dragging. A StateFlow keeps only the newest value, so a slow shell call
+    // never queues up a backlog of intermediate values
+    private val saturationPreview = MutableStateFlow<Float?>(null)
     val uiState: StateFlow<MainUiModel> = _uiState.asStateFlow()
 
     private var _controllerStyleOptions = getCurrentControllerStyles().toMutableStateList()
@@ -56,8 +65,14 @@ class MainViewModel @Inject constructor(
 
         val deviceType = deviceUtils.getDeviceType()
 
+        viewModelScope.launch(Dispatchers.IO) {
+            saturationPreview.filterNotNull().collect { settings.setSfSaturation(it) }
+        }
+
         _uiState.update { _ ->
             MainUiModel(
+                currentSaturation = prefs.saturationOverride,
+                saturationDeferred = displayOverrideManager.isApplied(SaturationOverride.ID),
                 deviceType = deviceType,
                 deviceVersion = deviceUtils.getDeviceVersion(),
                 showIncompatibleDeviceDialog = deviceType != ODIN2 && deviceType != NOVA,
@@ -138,30 +153,35 @@ class MainViewModel @Inject constructor(
         prefs.disabledL2r2Style = models.find { it.checked.not() }?.key
     }
 
-    fun saturationClicked() {
-        _uiState.update {
-            it.copy(showSaturationDialog = true, currentSaturation = prefs.saturationOverride)
+    /** Live update while dragging: applied right away unless an external display's own saturation is in effect. */
+    fun previewSaturation(newValue: Float) {
+        val value = roundSaturation(newValue)
+        _uiState.update { it.copy(currentSaturation = value) }
+        if (!displayOverrideManager.isApplied(SaturationOverride.ID)) {
+            saturationPreview.value = value
         }
     }
 
-    fun saturationDialogDismissed() {
-        _uiState.update {
-            it.copy(showSaturationDialog = false)
-        }
-    }
-
-    fun saveSaturation(newValue: Float) {
-        prefs.saturationOverride = newValue
+    /** Saves the value when the slider is released. */
+    fun commitSaturation() {
+        val value = _uiState.value.currentSaturation
+        prefs.saturationOverride = value
         // While docked with a docked saturation, the handheld value is only restored on disconnect:
         // SurfaceFlinger's saturation is global, so applying it now would change the external display
-        val deferredUntilDisconnect = displayOverrideManager.updateSavedValue(SaturationOverride.ID, newValue.toString())
+        val deferredUntilDisconnect = displayOverrideManager.updateSavedValue(SaturationOverride.ID, value.toString())
         if (!deferredUntilDisconnect) {
-            settings.setSfSaturation(newValue)
+            saturationPreview.value = value
         }
-        _uiState.update {
-            it.copy(showSaturationDialog = false)
-        }
+        _uiState.update { it.copy(saturationDeferred = deferredUntilDisconnect) }
     }
+
+    fun resetSaturation() {
+        previewSaturation(1.0f)
+        commitSaturation()
+    }
+
+    // One decimal, matching the slider steps, so stored values compare cleanly (0.7, not 0.70000005)
+    private fun roundSaturation(value: Float) = (value * 10).roundToInt() / 10f
 
     fun updateVibrationPreference(newValue: Boolean) {
         settings.vibrationEnabled = newValue

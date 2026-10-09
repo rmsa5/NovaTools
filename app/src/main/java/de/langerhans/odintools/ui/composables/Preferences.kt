@@ -4,6 +4,7 @@ import android.view.KeyEvent
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
@@ -48,8 +50,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
@@ -236,42 +241,105 @@ fun CheckboxDialogRow(text: String, enabled: Boolean, checked: Boolean, onChecke
     }
 }
 
+/**
+ * Inline saturation setting with a colour reference. Changes apply live while dragging (the reference shows the
+ * effect, since SurfaceFlinger's saturation affects everything on screen) and are saved when the slider is released.
+ */
 @Composable
-fun SaturationPreferenceDialog(initialValue: Float, onCancel: () -> Unit, onSave: (newVal: Float) -> Unit) {
-    var userValue: Float by remember {
-        mutableFloatStateOf(initialValue)
-    }
-
-    AlertDialog(onDismissRequest = {}, confirmButton = {
-        DialogButton(text = stringResource(id = R.string.save)) {
-            onSave(userValue)
-        }
-    }, dismissButton = {
-        DialogButton(text = stringResource(id = R.string.cancel), onCancel)
-    }, title = {
-        Text(text = stringResource(id = R.string.saturation))
-    }, text = {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Slider(
-                value = userValue,
-                valueRange = 0f..2f,
-                steps = 19,
-                onValueChange = {
-                    userValue = it
-                },
+fun SaturationPreference(
+    value: Float,
+    deferred: Boolean,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    onReset: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PreferenceDescription(
+                icon = R.drawable.ic_palette,
+                title = R.string.saturation,
+                description = R.string.saturationDescription,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(end = 4.dp),
+                    .padding(end = 16.dp),
+            )
+            TextButton(onClick = onReset) {
+                Text(text = stringResource(id = R.string.reset))
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Slider(
+                value = value,
+                valueRange = 0f..2f,
+                steps = 19,
+                onValueChange = onValueChange,
+                onValueChangeFinished = onValueChangeFinished,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp),
             )
             Text(
-                text = String.format(LocalConfiguration.current.locales[0], "%.1f", userValue),
+                text = String.format(LocalConfiguration.current.locales[0], "%.1f", value),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
-    })
+        SaturationReference(modifier = Modifier.fillMaxWidth())
+        if (deferred) {
+            Text(
+                text = stringResource(id = R.string.saturationDeferred),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
+    }
 }
+
+/** A hue strip and a row of reference swatches (primaries, secondaries, skin tones, neutral grey). */
+@Composable
+fun SaturationReference(modifier: Modifier = Modifier) {
+    val hueStrip = remember { (0..360 step 30).map { Color.hsv((it % 360).toFloat(), 1f, 1f) } }
+    Column(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(18.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Brush.horizontalGradient(hueStrip)),
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            referenceSwatches.forEach { color ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(color),
+                )
+            }
+        }
+    }
+}
+
+private val referenceSwatches = listOf(
+    Color(0xFFE53935), // red
+    Color(0xFF43A047), // green
+    Color(0xFF1E88E5), // blue
+    Color(0xFFFDD835), // yellow
+    Color(0xFF00ACC1), // cyan
+    Color(0xFF8E24AA), // magenta
+    Color(0xFFF1C27D), // light skin
+    Color(0xFFC68642), // medium skin
+    Color(0xFF8D5524), // dark skin
+    Color(0xFF808080), // neutral grey: shouldn't change with saturation
+)
 
 @Composable
 fun VibrationPreferenceDialog(initialValue: Int, onCancel: () -> Unit, onSave: (newValue: Int) -> Unit) {

@@ -32,6 +32,12 @@ class DisplayOverrideManager @Inject constructor(
     val isActive: Boolean
         get() = prefs.displayOverrideSnapshot != null
 
+    /** True if the override [id] is currently applied (connected, with a value set for it). */
+    fun isApplied(id: String): Boolean {
+        val raw = prefs.displayOverrideSnapshot ?: return false
+        return runCatching { JSONObject(raw).has(id) }.getOrDefault(false)
+    }
+
     @Synchronized
     fun onConnected() {
         if (isActive) return // Each connect sends several broadcasts; only handle the first

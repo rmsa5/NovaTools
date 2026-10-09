@@ -37,7 +37,7 @@ import de.langerhans.odintools.ui.composables.NotAnOdinDialog
 import de.langerhans.odintools.ui.composables.OdinTopAppBar
 import de.langerhans.odintools.ui.composables.PServerNotAvailableDialog
 import de.langerhans.odintools.ui.composables.RemapButtonDialog
-import de.langerhans.odintools.ui.composables.SaturationPreferenceDialog
+import de.langerhans.odintools.ui.composables.SaturationPreference
 import de.langerhans.odintools.ui.composables.SettingsHeader
 import de.langerhans.odintools.ui.composables.SwitchPreference
 import de.langerhans.odintools.ui.composables.SwitchableTriggerPreference
@@ -110,13 +110,6 @@ fun SettingsScreen(viewModel: MainViewModel = hiltViewModel(), navigateToOverrid
         }
     }
 
-    if (uiState.showSaturationDialog) {
-        SaturationPreferenceDialog(
-            initialValue = uiState.currentSaturation,
-            onCancel = { viewModel.saturationDialogDismissed() },
-            onSave = { viewModel.saveSaturation(it) },
-        )
-    }
 
     if (uiState.showVideoOutputOverrideDialog) {
         VideoOutputOverridePreferenceDialog(
@@ -231,13 +224,13 @@ fun SettingsScreen(viewModel: MainViewModel = hiltViewModel(), navigateToOverrid
                 }
             }
             SettingsHeader(name = R.string.display)
-            TriggerPreference(
-                icon = R.drawable.ic_palette,
-                title = R.string.saturation,
-                description = R.string.saturationDescription,
-            ) {
-                viewModel.saturationClicked()
-            }
+            SaturationPreference(
+                value = uiState.currentSaturation,
+                deferred = uiState.saturationDeferred,
+                onValueChange = { viewModel.previewSaturation(it) },
+                onValueChangeFinished = { viewModel.commitSaturation() },
+                onReset = { viewModel.resetSaturation() },
+            )
             if (uiState.deviceType == ODIN2) {
                 SettingsHeader(name = R.string.haptics)
                 SwitchableTriggerPreference(

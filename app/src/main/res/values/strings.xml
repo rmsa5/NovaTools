@@ -39,8 +39,10 @@
     <string name="delete">Delete</string>
 
     <string name="saturation">Display saturation</string>
+    <string name="reset">Reset</string>
     <string name="display">Display</string>
-    <string name="saturationDescription">Change the saturation of the display. Will be re-applied on reboot. Default value is 1.0.</string>
+    <string name="saturationDescription">Saturation of the Nova\'s own screen. Applied live, kept after a reboot. Default is 1.0.</string>
+    <string name="saturationDeferred">An external display is connected with its own saturation: this value will apply to the Nova\'s screen once it\'s disconnected.</string>
 
     <string name="videoOutputOverride">External override</string>
     <string name="aspectRatio">Aspect ratio</string>
