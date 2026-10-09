@@ -22,6 +22,7 @@ import de.langerhans.odintools.models.L2R2Style.Both
 import de.langerhans.odintools.models.L2R2Style.Digital
 import de.langerhans.odintools.overrides.DisplayOverrideManager
 import de.langerhans.odintools.overrides.SaturationOverride
+import de.langerhans.odintools.presets.ScreenPresetRepository
 import de.langerhans.odintools.tools.DeviceType.NOVA
 import de.langerhans.odintools.tools.DeviceType.ODIN2
 import de.langerhans.odintools.tools.DeviceUtils
@@ -30,11 +31,12 @@ import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.tools.ShellExecutor
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -50,13 +52,18 @@ class MainViewModel @Inject constructor(
     private val prefs: SharedPrefsRepo,
     private val displayOverrideManager: DisplayOverrideManager,
     private val screenIdentityReader: ScreenIdentityReader,
+    private val screenPresets: ScreenPresetRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiModel())
 
-    // Latest saturation to apply while dragging. A StateFlow keeps only the newest value, so a slow shell call
-    // never queues up a backlog of intermediate values
-    private val saturationPreview = MutableStateFlow<Float?>(null)
+    // Saturations to apply while dragging. Only the newest waiting value is kept, so a slow shell call never queues
+    // up a backlog of intermediate values. Unlike a StateFlow, a value equal to the previous one still goes through:
+    // a docked preset may have changed the screen's saturation since
+    private val saturationPreview = MutableSharedFlow<Float>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
 
     private var lastLoggedScreenKey: String? = null
 
@@ -82,7 +89,7 @@ class MainViewModel @Inject constructor(
         val deviceType = deviceUtils.getDeviceType()
 
         viewModelScope.launch(Dispatchers.IO) {
-            saturationPreview.filterNotNull().collect { settings.setSfSaturation(it) }
+            saturationPreview.collect { settings.setSfSaturation(it) }
         }
 
         screenIdentityReader.displayManager.registerDisplayListener(displayListener, Handler(Looper.getMainLooper()))
@@ -90,7 +97,6 @@ class MainViewModel @Inject constructor(
         _uiState.update { _ ->
             MainUiModel(
                 currentSaturation = prefs.saturationOverride,
-                saturationDeferred = displayOverrideManager.isApplied(SaturationOverride.ID),
                 deviceType = deviceType,
                 deviceVersion = deviceUtils.getDeviceVersion(),
                 showIncompatibleDeviceDialog = deviceType != ODIN2 && deviceType != NOVA,
@@ -102,6 +108,20 @@ class MainViewModel @Inject constructor(
                 videoOutputOverrideEnabled = prefs.videoOutputOverrideEnabled,
             )
         }
+
+        // Shows which preset is in effect, and whether the handheld saturation has to wait for the disconnect.
+        // Started after the initial state above, which would otherwise overwrite it
+        viewModelScope.launch {
+            displayOverrideManager.active.collect { active ->
+                _uiState.update {
+                    it.copy(
+                        activePreset = active,
+                        saturationDeferred = active?.appliedIds?.contains(SaturationOverride.ID) == true,
+                    )
+                }
+            }
+        }
+
         refreshConnectedScreen()
     }
 
@@ -109,10 +129,7 @@ class MainViewModel @Inject constructor(
         screenIdentityReader.displayManager.unregisterDisplayListener(displayListener)
     }
 
-    /**
-     * Reads the connected screen and the active overrides. Runs again shortly after each change, because the
-     * overrides are applied a moment after the display appears.
-     */
+    /** Reads the connected screen. Runs again shortly after each change, as its identity can arrive a bit later. */
     fun refreshConnectedScreen() {
         val readScreen = {
             val screen = screenIdentityReader.readExternal()
@@ -120,18 +137,30 @@ class MainViewModel @Inject constructor(
                 Log.i(TAG, "Connected screen: ${screen ?: "none"}")
                 lastLoggedScreenKey = screen?.key
             }
-            _uiState.update {
-                it.copy(
-                    connectedScreen = screen,
-                    activeOverrideIds = displayOverrideManager.appliedIds(),
-                    saturationDeferred = displayOverrideManager.isApplied(SaturationOverride.ID),
-                )
-            }
+            _uiState.update { it.copy(connectedScreen = screen) }
         }
         readScreen()
         viewModelScope.launch {
             delay(REFRESH_DELAY)
             readScreen()
+        }
+    }
+
+    /** Adds a preset for the connected screen, at the top of the list, and switches to it. */
+    fun addPresetForConnectedScreen() {
+        val screen = _uiState.value.connectedScreen ?: return
+        viewModelScope.launch {
+            screenPresets.addForScreen(screen)
+            displayOverrideManager.reapply()
+        }
+    }
+
+    /** Deletes the preset in effect (never the default one) and switches to the next matching preset. */
+    fun removeActivePreset() {
+        val preset = _uiState.value.activePreset?.takeUnless { it.isDefault } ?: return
+        viewModelScope.launch {
+            screenPresets.delete(preset.id)
+            displayOverrideManager.reapply()
         }
     }
 
@@ -207,7 +236,7 @@ class MainViewModel @Inject constructor(
         val value = roundSaturation(newValue)
         _uiState.update { it.copy(currentSaturation = value) }
         if (!displayOverrideManager.isApplied(SaturationOverride.ID)) {
-            saturationPreview.value = value
+            saturationPreview.tryEmit(value)
         }
     }
 
@@ -219,7 +248,7 @@ class MainViewModel @Inject constructor(
         // SurfaceFlinger's saturation is global, so applying it now would change the external display
         val deferredUntilDisconnect = displayOverrideManager.updateSavedValue(SaturationOverride.ID, value.toString())
         if (!deferredUntilDisconnect) {
-            saturationPreview.value = value
+            saturationPreview.tryEmit(value)
         }
         _uiState.update { it.copy(saturationDeferred = deferredUntilDisconnect) }
     }
@@ -307,15 +336,19 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    // The "External override" dialog edits the default preset (until the Screens page replaces it)
     fun videoOutputOverrideClicked() {
-        _uiState.update {
-            it.copy(
-                showVideoOutputOverrideDialog = true,
-                videoOutputControllerStyle = ControllerStyle.getById(prefs.videoOutputControllerStyle),
-                videoOutputL2R2Style = L2R2Style.getById(prefs.videoOutputL2R2Style),
-                videoOutputAspectRatio = AspectRatio.getById(prefs.videoOutputAspectRatio),
-                videoOutputSaturation = prefs.videoOutputSaturation,
-            )
+        viewModelScope.launch {
+            val preset = screenPresets.getDefault()
+            _uiState.update {
+                it.copy(
+                    showVideoOutputOverrideDialog = true,
+                    videoOutputControllerStyle = ControllerStyle.getById(preset.controllerStyle),
+                    videoOutputL2R2Style = L2R2Style.getById(preset.l2R2Style),
+                    videoOutputAspectRatio = AspectRatio.getById(preset.aspectRatio),
+                    videoOutputSaturation = preset.saturation ?: SharedPrefsRepo.NO_SATURATION_CHANGE,
+                )
+            }
         }
     }
 
@@ -331,10 +364,18 @@ class MainViewModel @Inject constructor(
         newAspectRatio: AspectRatio,
         newSaturation: Float,
     ) {
-        prefs.videoOutputControllerStyle = newControllerStyle.id
-        prefs.videoOutputL2R2Style = newL2R2Style.id
-        prefs.videoOutputAspectRatio = newAspectRatio.id
-        prefs.videoOutputSaturation = newSaturation
+        viewModelScope.launch {
+            val preset = screenPresets.getDefault()
+            screenPresets.save(
+                preset.copy(
+                    controllerStyle = newControllerStyle.id.takeUnless { newControllerStyle == ControllerStyle.Unknown },
+                    l2R2Style = newL2R2Style.id.takeUnless { newL2R2Style == L2R2Style.Unknown },
+                    aspectRatio = newAspectRatio.id.takeUnless { newAspectRatio == AspectRatio.Unknown },
+                    saturation = newSaturation.takeUnless { it == SharedPrefsRepo.NO_SATURATION_CHANGE },
+                ),
+            )
+            displayOverrideManager.reapply()
+        }
         _uiState.update {
             it.copy(
                 showVideoOutputOverrideDialog = false,

@@ -70,6 +70,7 @@ import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.models.ScreenIdentity
+import de.langerhans.odintools.overrides.ActivePreset
 import de.langerhans.odintools.overrides.AspectRatioOverride
 import de.langerhans.odintools.overrides.ControllerStyleOverride
 import de.langerhans.odintools.overrides.L2R2StyleOverride
@@ -248,7 +249,12 @@ fun CheckboxDialogRow(text: String, enabled: Boolean, checked: Boolean, onChecke
 
 /** What external screen is connected (from its identity data), its current mode, and the active overrides. */
 @Composable
-fun ConnectedScreenInfo(screen: ScreenIdentity?, activeOverrideIds: List<String>) {
+fun ConnectedScreenInfo(
+    screen: ScreenIdentity?,
+    activePreset: ActivePreset?,
+    onAddPreset: () -> Unit,
+    onRemovePreset: () -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -279,15 +285,29 @@ fun ConnectedScreenInfo(screen: ScreenIdentity?, activeOverrideIds: List<String>
                 ),
                 style = MaterialTheme.typography.bodySmall,
             )
-            val labels = activeOverrideIds.map { overrideLabel(it) }
-            Text(
-                text = if (labels.isEmpty()) {
-                    stringResource(id = R.string.noOverridesActive)
-                } else {
-                    stringResource(id = R.string.overridesActive, labels.joinToString(", "))
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
+            if (activePreset != null) {
+                val presetName = if (activePreset.isDefault) stringResource(id = R.string.defaultPresetName) else activePreset.name
+                Text(
+                    text = stringResource(id = R.string.presetInEffect, presetName),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                val labels = activePreset.appliedIds.map { overrideLabel(it) }
+                Text(
+                    text = if (labels.isEmpty()) {
+                        stringResource(id = R.string.noOverridesActive)
+                    } else {
+                        stringResource(id = R.string.overridesActive, labels.joinToString(", "))
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            // Temporary until the Screens page: lets a preset be created for this screen, or removed
+            if (activePreset == null || activePreset.isDefault) {
+                TextButton(onClick = onAddPreset) { Text(text = stringResource(id = R.string.addPresetForScreen)) }
+            } else {
+                TextButton(onClick = onRemovePreset) { Text(text = stringResource(id = R.string.removePreset)) }
+            }
         }
     }
 }

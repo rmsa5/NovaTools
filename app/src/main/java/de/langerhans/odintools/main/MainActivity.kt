@@ -158,7 +158,12 @@ fun SettingsScreen(viewModel: MainViewModel = hiltViewModel(), navigateToOverrid
                 .verticalScroll(rememberScrollState()),
         ) {
             SettingsHeader(R.string.connectedScreen)
-            ConnectedScreenInfo(screen = uiState.connectedScreen, activeOverrideIds = uiState.activeOverrideIds)
+            ConnectedScreenInfo(
+                screen = uiState.connectedScreen,
+                activePreset = uiState.activePreset,
+                onAddPreset = { viewModel.addPresetForConnectedScreen() },
+                onRemovePreset = { viewModel.removeActivePreset() },
+            )
             SettingsHeader(R.string.appOverrides)
             SwitchableTriggerPreference(
                 icon = R.drawable.ic_app_settings,

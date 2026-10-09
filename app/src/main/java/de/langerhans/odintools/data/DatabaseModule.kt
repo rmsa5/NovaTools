@@ -19,6 +19,11 @@ class DatabaseModule {
     }
 
     @Provides
+    fun provideScreenPresetDao(db: AppDatabase): ScreenPresetDao {
+        return db.screenPresetDao()
+    }
+
+    @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase {
         return Room.databaseBuilder(

@@ -25,19 +25,8 @@ class VideoOutputReceiver : BroadcastReceiver() {
     @Inject
     lateinit var overrideManager: DisplayOverrideManager
 
-    @Inject
-    lateinit var screenIdentityReader: ScreenIdentityReader
-
     private fun handleEvent(connected: Boolean) {
-        if (connected) {
-            // Only the first of the connect broadcasts schedules the identity log
-            if (!overrideManager.onConnected()) return
-            Handler(Looper.getMainLooper()).postDelayed({
-                Log.i(TAG, "Connected screen: ${screenIdentityReader.readExternal() ?: "not visible yet"}")
-            }, IDENTITY_LOG_DELAY)
-        } else {
-            overrideManager.onDisconnected()
-        }
+        if (connected) overrideManager.onConnected() else overrideManager.onDisconnected()
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -71,7 +60,6 @@ class VideoOutputReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "VideoOutputReceiver"
-        private const val IDENTITY_LOG_DELAY = 3000L
         private const val KEY_DP_CONNECTED = "sys.dp.isconnect"
 
         // Odin 2 / RP4 firmware
