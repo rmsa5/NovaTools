@@ -4,10 +4,11 @@
 
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="QueryAllPackagesPermission" />
+        tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="com.odin2.permission.RECEIVE_VIDEO_OUTPUT_PORT_CHANGE"/>
     <uses-permission android:name="com.retrostation.permission.RECEIVE_VIDEO_OUTPUT_PORT_CHANGE"/>
+    <uses-permission android:name="com.ro.permission.RECEIVE_VIDEO_OUTPUT_PORT_CHANGE"/>
 
     <application
         android:name=".OdinToolsApplication"
@@ -20,7 +21,8 @@
             android:name=".main.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.OdinTools"
-            android:screenOrientation="landscape">
+            android:screenOrientation="landscape"
+            tools:ignore="DiscouragedApi">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -59,7 +61,8 @@
         <service
             android:name=".service.ForegroundAppWatcherService"
             android:exported="false"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            tools:ignore="AccessibilityPolicy">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
