@@ -122,9 +122,11 @@ fun SettingsScreen(viewModel: MainViewModel = hiltViewModel(), navigateToOverrid
         VideoOutputOverridePreferenceDialog(
             initialControllerStyle = uiState.videoOutputControllerStyle,
             initialL2R2Style = uiState.videoOutputL2R2Style,
+            initialAspectRatio = uiState.videoOutputAspectRatio,
+            initialSaturation = uiState.videoOutputSaturation,
             onCancel = { viewModel.videoOutputOverrideDialogDismissed() },
-            onSave = { newControllerStyle, newL2R2Style ->
-                viewModel.saveVideoOutputOverride(newControllerStyle, newL2R2Style)
+            onSave = { newControllerStyle, newL2R2Style, newAspectRatio, newSaturation ->
+                viewModel.saveVideoOutputOverride(newControllerStyle, newL2R2Style, newAspectRatio, newSaturation)
             },
         )
     }

@@ -4,6 +4,8 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import de.langerhans.odintools.data.SharedPrefsRepo
+import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.tools.DeviceType
@@ -29,6 +31,8 @@ data class MainUiModel(
     val videoOutputOverrideEnabled: Boolean = false,
     val videoOutputControllerStyle: ControllerStyle = ControllerStyle.Unknown,
     val videoOutputL2R2Style: L2R2Style = L2R2Style.Unknown,
+    val videoOutputAspectRatio: AspectRatio = AspectRatio.Unknown,
+    val videoOutputSaturation: Float = SharedPrefsRepo.NO_SATURATION_CHANGE,
 
     val showVibrationDialog: Boolean = false,
     val vibrationEnabled: Boolean = false,

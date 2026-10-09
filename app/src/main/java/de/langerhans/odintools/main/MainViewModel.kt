@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.langerhans.odintools.R
 import de.langerhans.odintools.data.SharedPrefsRepo
+import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.ControllerStyle.Disconnect
 import de.langerhans.odintools.models.ControllerStyle.Odin
@@ -235,6 +236,8 @@ class MainViewModel @Inject constructor(
                 showVideoOutputOverrideDialog = true,
                 videoOutputControllerStyle = ControllerStyle.getById(prefs.videoOutputControllerStyle),
                 videoOutputL2R2Style = L2R2Style.getById(prefs.videoOutputL2R2Style),
+                videoOutputAspectRatio = AspectRatio.getById(prefs.videoOutputAspectRatio),
+                videoOutputSaturation = prefs.videoOutputSaturation,
             )
         }
     }
@@ -245,14 +248,23 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun saveVideoOutputOverride(newControllerStyle: ControllerStyle, newL2R2Style: L2R2Style) {
+    fun saveVideoOutputOverride(
+        newControllerStyle: ControllerStyle,
+        newL2R2Style: L2R2Style,
+        newAspectRatio: AspectRatio,
+        newSaturation: Float,
+    ) {
         prefs.videoOutputControllerStyle = newControllerStyle.id
         prefs.videoOutputL2R2Style = newL2R2Style.id
+        prefs.videoOutputAspectRatio = newAspectRatio.id
+        prefs.videoOutputSaturation = newSaturation
         _uiState.update {
             it.copy(
                 showVideoOutputOverrideDialog = false,
                 videoOutputControllerStyle = newControllerStyle,
                 videoOutputL2R2Style = newL2R2Style,
+                videoOutputAspectRatio = newAspectRatio,
+                videoOutputSaturation = newSaturation,
             )
         }
     }

@@ -2,6 +2,7 @@ package de.langerhans.odintools.tools
 
 import de.langerhans.odintools.BuildConfig
 import de.langerhans.odintools.service.ForegroundAppWatcherService
+import java.util.Locale
 import javax.inject.Inject
 
 class SettingsRepo @Inject constructor(
@@ -43,7 +44,8 @@ class SettingsRepo @Inject constructor(
     }
 
     fun setSfSaturation(value: Float) {
-        executor.executeAsRoot("service call SurfaceFlinger 1022 f ${String.format("%.1f", value)}")
+        // Locale.US: a French or Swiss locale would otherwise produce "0,9", which SurfaceFlinger can't parse
+        executor.executeAsRoot("service call SurfaceFlinger 1022 f ${String.format(Locale.US, "%.2f", value)}")
     }
 
     fun enableChargingSeparation() {

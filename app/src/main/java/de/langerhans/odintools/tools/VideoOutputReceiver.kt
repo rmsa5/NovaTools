@@ -8,6 +8,8 @@ import android.os.Looper
 import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
 import de.langerhans.odintools.data.SharedPrefsRepo
+import de.langerhans.odintools.data.SharedPrefsRepo.Companion.NO_SATURATION_CHANGE
+import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.service.ForegroundAppWatcherService.Companion.OVERRIDE_DELAY
@@ -20,12 +22,18 @@ class VideoOutputReceiver : BroadcastReceiver() {
 
     private var savedControllerStyle: ControllerStyle? = null
     private var savedL2R2Style: L2R2Style? = null
+    private var savedForcedDisplaySize: String? = null
+    private var aspectRatioOverridden = false
+    private var saturationOverridden = false
 
     @Inject
     lateinit var executor: ShellExecutor
 
     @Inject
     lateinit var prefs: SharedPrefsRepo
+
+    @Inject
+    lateinit var settings: SettingsRepo
 
     private fun handleEvent(connected: Boolean?) {
         if (connected == true && !overrideEnabled) {
@@ -41,11 +49,33 @@ class VideoOutputReceiver : BroadcastReceiver() {
                 it != L2R2Style.Unknown
             }?.enable(executor)
 
+            // Aspect ratio: remember the current forced size (null = native) so undocking restores it exactly
+            val aspectRatio = AspectRatio.getById(prefs.videoOutputAspectRatio)
+            aspectRatioOverridden = aspectRatio != AspectRatio.Unknown
+            if (aspectRatioOverridden) {
+                savedForcedDisplaySize = AspectRatio.getForcedSize(executor)
+                aspectRatio.enable(executor)
+            }
+
+            // Saturation: the handheld screen is off while docked, so this only affects the external display
+            val saturation = prefs.videoOutputSaturation
+            saturationOverridden = saturation != NO_SATURATION_CHANGE
+            if (saturationOverridden) {
+                settings.setSfSaturation(saturation)
+            }
+
             overrideEnabled = true
         } else if (connected == false && overrideEnabled) {
             // Reset to defaults
             savedControllerStyle?.enable(executor)
             savedL2R2Style?.enable(executor)
+            if (aspectRatioOverridden) {
+                AspectRatio.setForcedSize(executor, savedForcedDisplaySize)
+            }
+            if (saturationOverridden) {
+                // Back to the handheld saturation from the main "Display saturation" setting
+                settings.setSfSaturation(prefs.saturationOverride)
+            }
 
             overrideEnabled = false
         }

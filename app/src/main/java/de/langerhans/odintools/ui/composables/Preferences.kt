@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Checkbox
@@ -51,16 +53,18 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import de.langerhans.odintools.R
+import de.langerhans.odintools.data.SharedPrefsRepo
 import de.langerhans.odintools.main.CheckboxPreferenceUiModel
+import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.ui.theme.Typography
-import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
@@ -262,7 +266,7 @@ fun SaturationPreferenceDialog(initialValue: Float, onCancel: () -> Unit, onSave
                     .padding(end = 4.dp),
             )
             Text(
-                text = String.format(Locale.getDefault(), "%.1f", userValue),
+                text = String.format(LocalConfiguration.current.locales[0], "%.1f", userValue),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
@@ -487,14 +491,25 @@ fun SpinnerDialogPreference(
 fun VideoOutputOverridePreferenceDialog(
     initialControllerStyle: ControllerStyle,
     initialL2R2Style: L2R2Style,
+    initialAspectRatio: AspectRatio,
+    initialSaturation: Float,
     onCancel: () -> Unit,
-    onSave: (newControllerStyle: ControllerStyle, newL2R2Style: L2R2Style) -> Unit,
+    onSave: (newControllerStyle: ControllerStyle, newL2R2Style: L2R2Style, newAspectRatio: AspectRatio, newSaturation: Float) -> Unit,
 ) {
     var controllerStyle: String by remember {
         mutableStateOf(initialControllerStyle.id)
     }
     var l2R2Style: String by remember {
         mutableStateOf(initialL2R2Style.id)
+    }
+    var aspectRatio: String by remember {
+        mutableStateOf(initialAspectRatio.id)
+    }
+    var changeSaturation: Boolean by remember {
+        mutableStateOf(initialSaturation != SharedPrefsRepo.NO_SATURATION_CHANGE)
+    }
+    var saturation: Float by remember {
+        mutableFloatStateOf(if (initialSaturation == SharedPrefsRepo.NO_SATURATION_CHANGE) 1.0f else initialSaturation)
     }
 
     val controllerStyleList = listOf(
@@ -509,6 +524,11 @@ fun VideoOutputOverridePreferenceDialog(
         L2R2Style.Digital.id to stringResource(id = L2R2Style.Digital.textRes),
         L2R2Style.Both.id to stringResource(id = L2R2Style.Both.textRes),
     )
+    val aspectRatioList = listOf(
+        AspectRatio.Unknown.id to stringResource(id = R.string.noChange),
+        AspectRatio.Ratio4x3.id to stringResource(id = AspectRatio.Ratio4x3.textRes),
+        AspectRatio.Ratio16x9.id to stringResource(id = AspectRatio.Ratio16x9.textRes),
+    )
 
     Dialog(onDismissRequest = {}) {
         Surface(
@@ -519,6 +539,8 @@ fun VideoOutputOverridePreferenceDialog(
         ) {
             Column(
                 modifier = Modifier
+                    // Taller than before: allow scrolling on the Nova's landscape screen
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp),
             ) {
                 // Title
@@ -544,6 +566,40 @@ fun VideoOutputOverridePreferenceDialog(
                 ) {
                     l2R2Style = it
                 }
+                SpinnerDialogPreference(
+                    label = R.string.aspectRatio,
+                    items = aspectRatioList,
+                    selectedKey = aspectRatio,
+                ) {
+                    aspectRatio = it
+                }
+                // Saturation: switch off = leave the saturation unchanged when docked
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.dockedSaturation),
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(checked = changeSaturation, onCheckedChange = { changeSaturation = it })
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Slider(
+                        value = saturation,
+                        valueRange = 0f..2f,
+                        steps = 19,
+                        enabled = changeSaturation,
+                        onValueChange = { saturation = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 4.dp),
+                    )
+                    Text(
+                        text = String.format(LocalConfiguration.current.locales[0], "%.1f", saturation),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
                 Spacer(modifier = Modifier.padding(12.dp))
                 // Buttons
                 Row(
@@ -558,6 +614,8 @@ fun VideoOutputOverridePreferenceDialog(
                         onSave(
                             ControllerStyle.getById(controllerStyle),
                             L2R2Style.getById(l2R2Style),
+                            AspectRatio.getById(aspectRatio),
+                            if (changeSaturation) saturation else SharedPrefsRepo.NO_SATURATION_CHANGE,
                         )
                     }) {
                         Text(text = stringResource(id = R.string.save))

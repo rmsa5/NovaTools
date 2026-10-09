@@ -3,6 +3,7 @@ package de.langerhans.odintools.data
 import android.content.Context
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import dagger.hilt.android.qualifiers.ApplicationContext
+import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
 import javax.inject.Inject
@@ -98,6 +99,15 @@ class SharedPrefsRepo @Inject constructor(
         get() = prefs.getString(KEY_VIDEO_OUTPUT_L2R2_STYLE, L2R2Style.Unknown.id)
         set(value) = prefs.edit().putString(KEY_VIDEO_OUTPUT_L2R2_STYLE, value).apply()
 
+    var videoOutputAspectRatio
+        get() = prefs.getString(KEY_VIDEO_OUTPUT_ASPECT_RATIO, AspectRatio.Unknown.id)
+        set(value) = prefs.edit().putString(KEY_VIDEO_OUTPUT_ASPECT_RATIO, value).apply()
+
+    /** Saturation to use while an external display is connected, or [NO_SATURATION_CHANGE]. */
+    var videoOutputSaturation
+        get() = prefs.getFloat(KEY_VIDEO_OUTPUT_SATURATION, NO_SATURATION_CHANGE)
+        set(value) = prefs.edit().putFloat(KEY_VIDEO_OUTPUT_SATURATION, value).apply()
+
     private var videoOutputOverrideEnabledListener: OnSharedPreferenceChangeListener? = null
 
     fun observeVideoOutputOverrideEnabledState(onVideoOutputOverrideEnabled: (newState: Boolean) -> Unit) {
@@ -115,6 +125,8 @@ class SharedPrefsRepo @Inject constructor(
     }
 
     companion object {
+        const val NO_SATURATION_CHANGE = -1f
+
         private const val PREFS_NAME = "odintools"
 
         private const val KEY_DISABLED_CONTROLLER_STYLE = "disabled_controller_style"
@@ -128,6 +140,8 @@ class SharedPrefsRepo @Inject constructor(
         private const val KEY_MAX_BATTERY_LEVEL = "max_battery_level"
         private const val KEY_VIDEO_OUTPUT_OVERRIDE_ENABLED = "video_output_override_enabled"
         private const val KEY_VIDEO_OUTPUT_CONTROLLER_STYLE = "video_output_override_controller_style"
+        private const val KEY_VIDEO_OUTPUT_ASPECT_RATIO = "video_output_override_aspect_ratio"
+        private const val KEY_VIDEO_OUTPUT_SATURATION = "video_output_override_saturation"
         private const val KEY_VIDEO_OUTPUT_L2R2_STYLE = "video_output_override_l2r2_style"
     }
 }
