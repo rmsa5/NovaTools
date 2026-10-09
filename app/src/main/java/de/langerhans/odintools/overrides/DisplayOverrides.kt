@@ -4,6 +4,7 @@ import de.langerhans.odintools.data.ScreenPresetEntity
 import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
+import de.langerhans.odintools.tools.DisplaySettings
 import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.tools.ShellExecutor
 
@@ -71,5 +72,64 @@ class SaturationOverride(
 
     companion object {
         const val ID = "saturation"
+    }
+}
+
+class RefreshRateOverride(
+    private val display: DisplaySettings,
+) : DisplayOverride {
+    override val id = ID
+
+    override fun target(preset: ScreenPresetEntity) = preset.refreshRate
+
+    override fun read() = display.getRefreshRate()
+
+    override fun write(value: String?) = display.setRefreshRate(value)
+
+    companion object {
+        const val ID = "refresh_rate"
+    }
+}
+
+/** Android resets the saturation when the colour mode changes, so NovaTools' saturation is put back right after. */
+class ColorModeOverride(
+    private val display: DisplaySettings,
+    private val settings: SettingsRepo,
+) : DisplayOverride {
+    override val id = ID
+
+    override fun target(preset: ScreenPresetEntity) = preset.colorMode?.toString()
+
+    override fun read() = display.getColorMode()?.toString()
+
+    override fun write(value: String?) {
+        val mode = value?.toIntOrNull() ?: return
+        display.setColorMode(mode)
+        // Android resets the saturation a moment later, from its own thread: wait for it before putting ours back
+        Thread.sleep(SATURATION_RESET_DELAY)
+        settings.setSfSaturation(settings.currentSaturation)
+    }
+
+    companion object {
+        const val ID = "color_mode"
+        private const val SATURATION_RESET_DELAY = 500L
+    }
+}
+
+class TintOverride(
+    private val display: DisplaySettings,
+) : DisplayOverride {
+    override val id = ID
+
+    override fun target(preset: ScreenPresetEntity) = preset.tint?.toString()
+
+    override fun read() = display.getTint()?.toString()
+
+    override fun write(value: String?) {
+        value?.toIntOrNull()?.let { display.setTint(it) }
+    }
+
+    companion object {
+        const val ID = "tint"
     }
 }

@@ -11,18 +11,14 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.langerhans.odintools.R
 import de.langerhans.odintools.data.SharedPrefsRepo
-import de.langerhans.odintools.models.AspectRatio
-import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.ControllerStyle.Disconnect
 import de.langerhans.odintools.models.ControllerStyle.Odin
 import de.langerhans.odintools.models.ControllerStyle.Xbox
-import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.models.L2R2Style.Analog
 import de.langerhans.odintools.models.L2R2Style.Both
 import de.langerhans.odintools.models.L2R2Style.Digital
 import de.langerhans.odintools.overrides.DisplayOverrideManager
 import de.langerhans.odintools.overrides.SaturationOverride
-import de.langerhans.odintools.presets.ScreenPresetRepository
 import de.langerhans.odintools.tools.DeviceType.NOVA
 import de.langerhans.odintools.tools.DeviceType.ODIN2
 import de.langerhans.odintools.tools.DeviceUtils
@@ -52,7 +48,6 @@ class MainViewModel @Inject constructor(
     private val prefs: SharedPrefsRepo,
     private val displayOverrideManager: DisplayOverrideManager,
     private val screenIdentityReader: ScreenIdentityReader,
-    private val screenPresets: ScreenPresetRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiModel())
@@ -105,7 +100,6 @@ class MainViewModel @Inject constructor(
                 overrideDelayEnabled = prefs.overrideDelay,
                 vibrationEnabled = settings.vibrationEnabled,
                 chargeLimitEnabled = prefs.chargeLimitEnabled,
-                videoOutputOverrideEnabled = prefs.videoOutputOverrideEnabled,
             )
         }
 
@@ -143,24 +137,6 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             delay(REFRESH_DELAY)
             readScreen()
-        }
-    }
-
-    /** Adds a preset for the connected screen, at the top of the list, and switches to it. */
-    fun addPresetForConnectedScreen() {
-        val screen = _uiState.value.connectedScreen ?: return
-        viewModelScope.launch {
-            screenPresets.addForScreen(screen)
-            displayOverrideManager.reapply()
-        }
-    }
-
-    /** Deletes the preset in effect (never the default one) and switches to the next matching preset. */
-    fun removeActivePreset() {
-        val preset = _uiState.value.activePreset?.takeUnless { it.isDefault } ?: return
-        viewModelScope.launch {
-            screenPresets.delete(preset.id)
-            displayOverrideManager.reapply()
         }
     }
 
@@ -326,64 +302,6 @@ class MainViewModel @Inject constructor(
         executor.setIntSystemSetting(setting, newValue)
         _uiState.update {
             it.copy(showRemapButtonDialog = false)
-        }
-    }
-
-    fun updateVideoOutputOverridePreference(newValue: Boolean) {
-        prefs.videoOutputOverrideEnabled = newValue
-        _uiState.update {
-            it.copy(videoOutputOverrideEnabled = newValue)
-        }
-    }
-
-    // The "External override" dialog edits the default preset (until the Screens page replaces it)
-    fun videoOutputOverrideClicked() {
-        viewModelScope.launch {
-            val preset = screenPresets.getDefault()
-            _uiState.update {
-                it.copy(
-                    showVideoOutputOverrideDialog = true,
-                    videoOutputControllerStyle = ControllerStyle.getById(preset.controllerStyle),
-                    videoOutputL2R2Style = L2R2Style.getById(preset.l2R2Style),
-                    videoOutputAspectRatio = AspectRatio.getById(preset.aspectRatio),
-                    videoOutputSaturation = preset.saturation ?: SharedPrefsRepo.NO_SATURATION_CHANGE,
-                )
-            }
-        }
-    }
-
-    fun videoOutputOverrideDialogDismissed() {
-        _uiState.update {
-            it.copy(showVideoOutputOverrideDialog = false)
-        }
-    }
-
-    fun saveVideoOutputOverride(
-        newControllerStyle: ControllerStyle,
-        newL2R2Style: L2R2Style,
-        newAspectRatio: AspectRatio,
-        newSaturation: Float,
-    ) {
-        viewModelScope.launch {
-            val preset = screenPresets.getDefault()
-            screenPresets.save(
-                preset.copy(
-                    controllerStyle = newControllerStyle.id.takeUnless { newControllerStyle == ControllerStyle.Unknown },
-                    l2R2Style = newL2R2Style.id.takeUnless { newL2R2Style == L2R2Style.Unknown },
-                    aspectRatio = newAspectRatio.id.takeUnless { newAspectRatio == AspectRatio.Unknown },
-                    saturation = newSaturation.takeUnless { it == SharedPrefsRepo.NO_SATURATION_CHANGE },
-                ),
-            )
-            displayOverrideManager.reapply()
-        }
-        _uiState.update {
-            it.copy(
-                showVideoOutputOverrideDialog = false,
-                videoOutputControllerStyle = newControllerStyle,
-                videoOutputL2R2Style = newL2R2Style,
-                videoOutputAspectRatio = newAspectRatio,
-                videoOutputSaturation = newSaturation,
-            )
         }
     }
 

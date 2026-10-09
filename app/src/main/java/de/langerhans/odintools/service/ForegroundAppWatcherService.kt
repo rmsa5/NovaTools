@@ -16,7 +16,9 @@ import de.langerhans.odintools.models.ControllerStyle.Unknown
 import de.langerhans.odintools.models.FanMode
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.models.PerfMode
+import de.langerhans.odintools.overrides.ControllerStyleOverride
 import de.langerhans.odintools.overrides.DisplayOverrideManager
+import de.langerhans.odintools.overrides.L2R2StyleOverride
 import de.langerhans.odintools.tools.BatteryLevelReceiver
 import de.langerhans.odintools.tools.ShellExecutor
 import de.langerhans.odintools.tools.VideoOutputReceiver
@@ -69,7 +71,6 @@ class ForegroundAppWatcherService @Inject constructor() : AccessibilityService()
     }
 
     private var chargeLimitEnabled: Boolean = false
-    private var videoOutputOverrideEnabled: Boolean = false
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         if (shouldIgnore(event)) return
@@ -109,15 +110,17 @@ class ForegroundAppWatcherService @Inject constructor() : AccessibilityService()
             savedFanMode = FanMode.getMode(executor)
         }
 
-        // Avoid conflicts with Video Output Override
-        if (!videoOutputOverrideEnabled || !displayOverrideManager.isActive) {
+        // A connected screen's preset wins over per-app overrides for the settings it changes
+        if (!displayOverrideManager.isApplied(ControllerStyleOverride.ID)) {
             ControllerStyle.getById(override.controllerStyle).takeIf {
                 it != Unknown
             }?.enable(executor) ?: run {
                 // Reset to default if we switch between override and NoChange app
                 savedControllerStyle?.enable(executor)
             }
+        }
 
+        if (!displayOverrideManager.isApplied(L2R2StyleOverride.ID)) {
             L2R2Style.getById(override.l2R2Style).takeIf {
                 it != L2R2Style.Unknown
             }?.enable(executor) ?: run {
@@ -175,22 +178,16 @@ class ForegroundAppWatcherService @Inject constructor() : AccessibilityService()
         chargeLimitEnabled = newValue
     }
 
-    private fun applyVideoOutputOverride(newValue: Boolean) {
-        if (newValue && !videoOutputOverrideEnabled) {
-            val intentFilter = IntentFilter().apply {
-                VideoOutputReceiver.ALLOWED_INTENTS.forEach { action ->
-                    addAction(action)
-                }
+    /** Screen presets: listens for external displays for as long as the service runs. */
+    private fun listenForExternalDisplays() {
+        val intentFilter = IntentFilter().apply {
+            VideoOutputReceiver.ALLOWED_INTENTS.forEach { action ->
+                addAction(action)
             }
-            registerReceiver(videoOutputReceiver, intentFilter, RECEIVER_EXPORTED)
-            // Catch up if a display is already connected, or undo overrides left over from before a restart
-            displayOverrideManager.syncWithConnectionState()
-        } else if (!newValue && videoOutputOverrideEnabled) {
-            unregisterReceiver(videoOutputReceiver)
-            // Switching the feature off restores everything right away
-            displayOverrideManager.onDisconnected()
         }
-        videoOutputOverrideEnabled = newValue
+        registerReceiver(videoOutputReceiver, intentFilter, RECEIVER_EXPORTED)
+        // Catch up if a display is already connected, or undo a preset left over from before a restart
+        displayOverrideManager.syncWithConnectionState()
     }
 
     override fun onInterrupt() {
@@ -220,10 +217,7 @@ class ForegroundAppWatcherService @Inject constructor() : AccessibilityService()
             applyChargeLimit(it)
         }
 
-        applyVideoOutputOverride(prefs.videoOutputOverrideEnabled)
-        prefs.observeVideoOutputOverrideEnabledState {
-            applyVideoOutputOverride(it)
-        }
+        listenForExternalDisplays()
 
         scope.launch {
             appOverrideDao.getAll()
@@ -240,7 +234,8 @@ class ForegroundAppWatcherService @Inject constructor() : AccessibilityService()
         contentResolver.unregisterContentObserver(imeObserver)
         prefs.removeAppOverrideEnabledObserver()
         prefs.removeChargeLimitEnabledObserver()
-        prefs.removeVideoOutputOverrideEnabledObserver()
+        // Throws if the service was destroyed before it connected and registered it
+        runCatching { unregisterReceiver(videoOutputReceiver) }
     }
 
     companion object {

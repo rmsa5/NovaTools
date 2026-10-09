@@ -45,20 +45,14 @@
     <string name="overridesActive">Changes: %1$s</string>
     <string name="noOverridesActive">Changes nothing</string>
     <string name="presetInEffect">Preset: %1$s</string>
-    <string name="defaultPresetName">Default (any screen)</string>
-    <string name="addPresetForScreen">Add preset for this screen</string>
-    <string name="removePreset">Remove preset</string>
+    <string name="defaultPresetName">Default (all screens)</string>
     <string name="reset">Reset</string>
     <string name="display">Display</string>
     <string name="saturationDescription">Saturation of the Nova\'s own screen. Applied live, kept after a reboot. Default is 1.0.</string>
     <string name="saturationDeferred">An external display is connected with its own saturation: this value will apply to the Nova\'s screen once it\'s disconnected.</string>
-
-    <string name="videoOutputOverride">External override</string>
     <string name="aspectRatio">Aspect ratio</string>
     <string name="aspectRatio4x3">4:3 (native)</string>
     <string name="aspectRatio16x9">16:9</string>
-    <string name="dockedSaturation">Change saturation</string>
-    <string name="videoOutputOverrideDescription">Set up override when connected to an external display. Switch off to disable.</string>
 
     <string name="a11yDescription">Used by NovaTools to detect running apps for dynamic switching of button settings.</string>
 
@@ -100,4 +94,42 @@
     <string name="debug">Debug</string>
     <string name="dumpLogToFile">Dump log to file</string>
     <string name="dumpLogToFileDescription">Dump log output to a text file in the internal memory.</string>
+    <string name="screens">Screens</string>
+    <string name="screensDescription">Settings applied when an external screen is connected: a default preset for all screens, and presets for specific screens.</string>
+    <string name="novaScreen">Nova screen</string>
+    <string name="novaScreenDescription">Built-in screen. External screen presets apply on top of it while connected, and its settings come back on disconnect.</string>
+    <string name="novaSaturation">Saturation: %1$s</string>
+    <string name="novaSaturationReplaced">Saturation: %1$s, replaced by %2$s (%3$s) while it\'s connected</string>
+    <string name="externalScreens">External screens</string>
+    <string name="addPresetFor">Add a preset for %1$s</string>
+    <string name="addPresetForDescription">Its own settings, used instead of the default preset</string>
+    <string name="anyScreenDescription">All external screens, unless one has its own preset</string>
+    <string name="badgeActive">Active</string>
+    <string name="badgeConnected">Connected</string>
+    <string name="moveUp">Move up</string>
+    <string name="moveDown">Move down</string>
+    <string name="moveToTop">Move to top</string>
+    <string name="moreActions">More actions</string>
+    <string name="deletePresetConfirm">Delete the preset \"%1$s\"?</string>
+    <string name="screensHint">When a screen is connected, the first preset from the top that matches it is applied, on top of the default preset. Select a preset to edit it. A preset can be added for a screen while it\'s connected.</string>
+    <string name="trackNovaScreen">Same as Nova screen</string>
+    <string name="trackDefaultPreset">Same as default preset</string>
+    <string name="tracksNovaScreen">Everything as on the Nova screen</string>
+    <string name="tracksDefaultPreset">Everything as in the default preset</string>
+    <string name="ownValuesThenDefault">%1$s · the rest as in the default preset</string>
+    <string name="refreshRate">Refresh rate</string>
+    <string name="refresh60">60 Hz</string>
+    <string name="refresh120">120 Hz</string>
+    <string name="colorMode">Colour mode</string>
+    <string name="colorModeStandard">Standard</string>
+    <string name="colorModeEnhanced">Screen enhancement</string>
+    <string name="colorModeIntelligent">Intelligent</string>
+    <string name="tint">Tint</string>
+    <string name="tintNature">Nature (none)</string>
+    <string name="tintWarm">Warm</string>
+    <string name="tintCool">Cool</string>
+    <string name="tintCustom">Custom</string>
+    <string name="tintHue">Hue</string>
+    <string name="tintStrength">Strength</string>
+    <string name="novaDeferredNote">While %1$s is connected, its preset decides: %2$s. Your changes to those apply when it\'s disconnected.</string>
 </resources>

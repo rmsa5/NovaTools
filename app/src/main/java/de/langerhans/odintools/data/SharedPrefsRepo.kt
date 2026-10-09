@@ -87,9 +87,9 @@ class SharedPrefsRepo @Inject constructor(
         appOverrideEnabledListener = null
     }
 
-    var videoOutputOverrideEnabled
+    /** The former "External override" switch, only read to create the default screen preset. */
+    val videoOutputOverrideEnabled
         get() = prefs.getBoolean(KEY_VIDEO_OUTPUT_OVERRIDE_ENABLED, false)
-        set(value) = prefs.edit().putBoolean(KEY_VIDEO_OUTPUT_OVERRIDE_ENABLED, value).apply()
 
     var videoOutputControllerStyle
         get() = prefs.getString(KEY_VIDEO_OUTPUT_CONTROLLER_STYLE, ControllerStyle.Unknown.id)
@@ -117,22 +117,6 @@ class SharedPrefsRepo @Inject constructor(
     var currentSfSaturation
         get() = prefs.getFloat(KEY_CURRENT_SF_SATURATION, 1.0f)
         set(value) = prefs.edit().putFloat(KEY_CURRENT_SF_SATURATION, value).apply()
-
-    private var videoOutputOverrideEnabledListener: OnSharedPreferenceChangeListener? = null
-
-    fun observeVideoOutputOverrideEnabledState(onVideoOutputOverrideEnabled: (newState: Boolean) -> Unit) {
-        videoOutputOverrideEnabledListener = OnSharedPreferenceChangeListener { _, key ->
-            if (key == KEY_VIDEO_OUTPUT_OVERRIDE_ENABLED) {
-                onVideoOutputOverrideEnabled(videoOutputOverrideEnabled)
-            }
-        }
-        prefs.registerOnSharedPreferenceChangeListener(videoOutputOverrideEnabledListener)
-    }
-
-    fun removeVideoOutputOverrideEnabledObserver() {
-        prefs.unregisterOnSharedPreferenceChangeListener(videoOutputOverrideEnabledListener)
-        videoOutputOverrideEnabledListener = null
-    }
 
     companion object {
         const val NO_SATURATION_CHANGE = -1f

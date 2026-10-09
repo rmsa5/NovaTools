@@ -29,6 +29,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import de.langerhans.odintools.R
 import de.langerhans.odintools.appsettings.AppOverrideListScreen
 import de.langerhans.odintools.appsettings.AppOverridesScreen
+import de.langerhans.odintools.presets.ScreensScreen
 import de.langerhans.odintools.tools.DeviceType.ODIN2
 import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.ui.composables.ChargeLimitPreferenceDialog
@@ -44,7 +45,6 @@ import de.langerhans.odintools.ui.composables.SwitchPreference
 import de.langerhans.odintools.ui.composables.SwitchableTriggerPreference
 import de.langerhans.odintools.ui.composables.TriggerPreference
 import de.langerhans.odintools.ui.composables.VibrationPreferenceDialog
-import de.langerhans.odintools.ui.composables.VideoOutputOverridePreferenceDialog
 import de.langerhans.odintools.ui.theme.OdinToolsTheme
 
 @AndroidEntryPoint
@@ -58,7 +58,13 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "settings") {
                         composable("settings") {
-                            SettingsScreen { navController.navigate("override/list") }
+                            SettingsScreen(
+                                navigateToOverrideList = { navController.navigate("override/list") },
+                                navigateToScreens = { navController.navigate("screens") },
+                            )
+                        }
+                        composable("screens") {
+                            ScreensScreen()
                         }
                         composable("override/list") {
                             AppOverrideListScreen { navController.navigate("override/$it") }
@@ -76,7 +82,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun SettingsScreen(viewModel: MainViewModel = hiltViewModel(), navigateToOverrideList: () -> Unit) {
+fun SettingsScreen(
+    viewModel: MainViewModel = hiltViewModel(),
+    navigateToOverrideList: () -> Unit,
+    navigateToScreens: () -> Unit,
+) {
     val uiState: MainUiModel by viewModel.uiState.collectAsState()
 
     if (uiState.showPServerNotAvailableDialog) {
@@ -112,18 +122,6 @@ fun SettingsScreen(viewModel: MainViewModel = hiltViewModel(), navigateToOverrid
     }
 
 
-    if (uiState.showVideoOutputOverrideDialog) {
-        VideoOutputOverridePreferenceDialog(
-            initialControllerStyle = uiState.videoOutputControllerStyle,
-            initialL2R2Style = uiState.videoOutputL2R2Style,
-            initialAspectRatio = uiState.videoOutputAspectRatio,
-            initialSaturation = uiState.videoOutputSaturation,
-            onCancel = { viewModel.videoOutputOverrideDialogDismissed() },
-            onSave = { newControllerStyle, newL2R2Style, newAspectRatio, newSaturation ->
-                viewModel.saveVideoOutputOverride(newControllerStyle, newL2R2Style, newAspectRatio, newSaturation)
-            },
-        )
-    }
 
     if (uiState.showVibrationDialog) {
         VibrationPreferenceDialog(
@@ -161,8 +159,7 @@ fun SettingsScreen(viewModel: MainViewModel = hiltViewModel(), navigateToOverrid
             ConnectedScreenInfo(
                 screen = uiState.connectedScreen,
                 activePreset = uiState.activePreset,
-                onAddPreset = { viewModel.addPresetForConnectedScreen() },
-                onRemovePreset = { viewModel.removeActivePreset() },
+                onClick = navigateToScreens,
             )
             SettingsHeader(R.string.appOverrides)
             SwitchableTriggerPreference(
@@ -174,15 +171,12 @@ fun SettingsScreen(viewModel: MainViewModel = hiltViewModel(), navigateToOverrid
             ) { newValue ->
                 viewModel.appOverridesEnabled(newValue)
             }
-            SwitchableTriggerPreference(
+            TriggerPreference(
                 icon = R.drawable.ic_gamepad_docked,
-                title = R.string.videoOutputOverride,
-                description = R.string.videoOutputOverrideDescription,
-                state = uiState.videoOutputOverrideEnabled,
-                onClick = { viewModel.videoOutputOverrideClicked() },
-            ) {
-                viewModel.updateVideoOutputOverridePreference(it)
-            }
+                title = R.string.screens,
+                description = R.string.screensDescription,
+                onClick = navigateToScreens,
+            )
             SwitchPreference(
                 icon = R.drawable.ic_more_time,
                 title = R.string.overrideDelay,

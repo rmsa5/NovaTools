@@ -5,6 +5,7 @@ import de.langerhans.odintools.data.ScreenPresetEntity
 import de.langerhans.odintools.data.SharedPrefsRepo
 import de.langerhans.odintools.models.ScreenIdentity
 import de.langerhans.odintools.presets.ScreenPresetRepository
+import de.langerhans.odintools.tools.DisplaySettings
 import de.langerhans.odintools.tools.ScreenIdentityReader
 import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.tools.ShellExecutor
@@ -39,6 +40,7 @@ class DisplayOverrideManager @Inject constructor(
     private val executor: ShellExecutor,
     private val prefs: SharedPrefsRepo,
     settings: SettingsRepo,
+    display: DisplaySettings,
     private val presets: ScreenPresetRepository,
     private val screenIdentityReader: ScreenIdentityReader,
 ) {
@@ -46,6 +48,10 @@ class DisplayOverrideManager @Inject constructor(
         ControllerStyleOverride(executor),
         L2R2StyleOverride(executor),
         AspectRatioOverride(executor),
+        RefreshRateOverride(display),
+        // Before the saturation: a colour mode change resets it
+        ColorModeOverride(display, settings),
+        TintOverride(display),
         SaturationOverride(settings),
     )
 
@@ -134,6 +140,30 @@ class DisplayOverrideManager @Inject constructor(
         }
     }
 
+    /**
+     * The Nova screen's own value for each setting, by override id: the value saved on connect while a preset
+     * changes it, otherwise the value in effect. Runs shell commands: call it off the main thread.
+     */
+    fun novaValues(): Map<String, String?> = synchronized(lock) {
+        val snapshot = loadSnapshot()
+        overrides.associate { override ->
+            val entry = snapshot?.entries?.get(override.id)
+            override.id to if (entry?.applied != null) entry.saved else override.read()
+        }
+    }
+
+    /**
+     * Sets the Nova screen's own value for a setting: right away, or on disconnect if the connected screen's
+     * preset changes that setting (applying it now would change what the external screen shows).
+     */
+    fun setNovaValue(id: String, value: String?) {
+        enqueue {
+            val deferred = updateSavedValue(id, value)
+            if (!deferred) overrides.firstOrNull { it.id == id }?.write(value)
+            Log.i(TAG, "Nova screen $id = $value" + if (deferred) " (applies on disconnect)" else "")
+        }
+    }
+
     private suspend fun connect(disconnectsSoFar: Int) {
         if (isActive) return // Each connection sends several broadcasts
 
@@ -144,11 +174,12 @@ class DisplayOverrideManager @Inject constructor(
         }
         Log.i(TAG, "Connected screen: ${screen ?: "not identified, using the default preset"}")
         val preset = presets.presetFor(screen)
+        val values = presets.effectiveValues(preset)
 
         synchronized(lock) {
             val entries = overrides.associate { it.id to Entry(saved = it.read(), applied = null) }
             val snapshot = Snapshot(preset.id, preset.name, preset.isDefault, entries.toMutableMap())
-            apply(snapshot, preset)
+            apply(snapshot, preset, values)
             saveSnapshot(snapshot)
         }
     }
@@ -156,9 +187,10 @@ class DisplayOverrideManager @Inject constructor(
     private suspend fun reapplyNow() {
         if (!isActive) return
         val preset = presets.presetFor(screenIdentityReader.readExternal())
+        val values = presets.effectiveValues(preset)
         synchronized(lock) {
             val snapshot = loadSnapshot() ?: return
-            apply(snapshot, preset)
+            apply(snapshot, preset, values)
             saveSnapshot(snapshot)
         }
     }
@@ -186,15 +218,19 @@ class DisplayOverrideManager @Inject constructor(
         clearSnapshot()
     }
 
-    /** Puts [preset] into effect on top of the values saved in [snapshot], switching from any previous preset. */
-    private fun apply(snapshot: Snapshot, preset: ScreenPresetEntity) {
+    /**
+     * Puts [preset] into effect on top of the values saved in [snapshot], switching from any previous preset.
+     * [values] are the preset's own values completed with the default preset's, for the settings it tracks.
+     */
+    private fun apply(snapshot: Snapshot, preset: ScreenPresetEntity, values: ScreenPresetEntity) {
         Log.i(TAG, "Using preset ${ScreenPresetRepository.describe(preset)}")
+        if (values != preset) Log.i(TAG, "With the default preset's values: ${ScreenPresetRepository.describe(values)}")
         snapshot.presetId = preset.id
         snapshot.presetName = preset.name
         snapshot.presetIsDefault = preset.isDefault
         overrides.forEach { override ->
             val entry = snapshot.entries.getOrPut(override.id) { Entry(saved = override.read(), applied = null) }
-            val target = override.target(preset)
+            val target = override.target(values)
             val previouslyApplied = entry.applied
             when {
                 target != null -> {
