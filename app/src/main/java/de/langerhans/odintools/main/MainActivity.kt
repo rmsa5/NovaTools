@@ -33,6 +33,7 @@ import de.langerhans.odintools.tools.DeviceType.ODIN2
 import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.ui.composables.ChargeLimitPreferenceDialog
 import de.langerhans.odintools.ui.composables.CheckBoxDialogPreference
+import de.langerhans.odintools.ui.composables.ConnectedScreenInfo
 import de.langerhans.odintools.ui.composables.NotAnOdinDialog
 import de.langerhans.odintools.ui.composables.OdinTopAppBar
 import de.langerhans.odintools.ui.composables.PServerNotAvailableDialog
@@ -156,6 +157,8 @@ fun SettingsScreen(viewModel: MainViewModel = hiltViewModel(), navigateToOverrid
                 .padding(end = 8.dp) // Extra padding cause of GameAssist bar overlay
                 .verticalScroll(rememberScrollState()),
         ) {
+            SettingsHeader(R.string.connectedScreen)
+            ConnectedScreenInfo(screen = uiState.connectedScreen, activeOverrideIds = uiState.activeOverrideIds)
             SettingsHeader(R.string.appOverrides)
             SwitchableTriggerPreference(
                 icon = R.drawable.ic_app_settings,

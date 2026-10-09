@@ -8,6 +8,7 @@ import de.langerhans.odintools.data.SharedPrefsRepo
 import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
+import de.langerhans.odintools.models.ScreenIdentity
 import de.langerhans.odintools.tools.DeviceType
 import de.langerhans.odintools.tools.DeviceType.ODIN2
 
@@ -23,6 +24,9 @@ data class MainUiModel(
 
     val showControllerStyleDialog: Boolean = false,
     val showL2r2StyleDialog: Boolean = false,
+
+    val connectedScreen: ScreenIdentity? = null,
+    val activeOverrideIds: List<String> = emptyList(),
 
     val currentSaturation: Float = 1.0f,
     val saturationDeferred: Boolean = false,

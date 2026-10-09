@@ -69,6 +69,11 @@ import de.langerhans.odintools.main.CheckboxPreferenceUiModel
 import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
+import de.langerhans.odintools.models.ScreenIdentity
+import de.langerhans.odintools.overrides.AspectRatioOverride
+import de.langerhans.odintools.overrides.ControllerStyleOverride
+import de.langerhans.odintools.overrides.L2R2StyleOverride
+import de.langerhans.odintools.overrides.SaturationOverride
 import de.langerhans.odintools.ui.theme.Typography
 import kotlin.math.roundToInt
 
@@ -240,6 +245,63 @@ fun CheckboxDialogRow(text: String, enabled: Boolean, checked: Boolean, onChecke
         Checkbox(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
+
+/** What external screen is connected (from its identity data), its current mode, and the active overrides. */
+@Composable
+fun ConnectedScreenInfo(screen: ScreenIdentity?, activeOverrideIds: List<String>) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Image(painter = painterResource(id = R.drawable.ic_gamepad_docked), contentDescription = null)
+        Column(modifier = Modifier.padding(start = 16.dp)) {
+            if (screen == null) {
+                Text(text = stringResource(id = R.string.noConnectedScreen))
+                return@Column
+            }
+            Text(text = screen.displayName, modifier = Modifier.padding(bottom = 4.dp))
+            val details = listOfNotNull(
+                screen.vendorProductId,
+                screen.manufactureDate?.let { stringResource(id = R.string.screenMade, it) },
+            ).joinToString(" · ")
+            if (details.isNotEmpty()) {
+                Text(text = details, style = MaterialTheme.typography.bodySmall)
+            }
+            Text(
+                text = String.format(
+                    LocalConfiguration.current.locales[0],
+                    "%d × %d @ %.0f Hz",
+                    screen.width,
+                    screen.height,
+                    screen.refreshRate,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            val labels = activeOverrideIds.map { overrideLabel(it) }
+            Text(
+                text = if (labels.isEmpty()) {
+                    stringResource(id = R.string.noOverridesActive)
+                } else {
+                    stringResource(id = R.string.overridesActive, labels.joinToString(", "))
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun overrideLabel(id: String) = stringResource(
+    id = when (id) {
+        ControllerStyleOverride.ID -> R.string.controllerStyle
+        L2R2StyleOverride.ID -> R.string.l2r2mode
+        AspectRatioOverride.ID -> R.string.aspectRatio
+        SaturationOverride.ID -> R.string.saturation
+        else -> R.string.unknown
+    },
+)
 
 /**
  * Inline saturation setting with a colour reference. Changes apply live while dragging (the reference shows the

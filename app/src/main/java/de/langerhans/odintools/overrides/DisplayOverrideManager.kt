@@ -32,15 +32,23 @@ class DisplayOverrideManager @Inject constructor(
     val isActive: Boolean
         get() = prefs.displayOverrideSnapshot != null
 
+    /** Ids of the overrides currently applied, in their usual order. */
+    fun appliedIds(): List<String> {
+        val raw = prefs.displayOverrideSnapshot ?: return emptyList()
+        val snapshot = runCatching { JSONObject(raw) }.getOrNull() ?: return emptyList()
+        return overrides.map { it.id }.filter { snapshot.has(it) }
+    }
+
     /** True if the override [id] is currently applied (connected, with a value set for it). */
     fun isApplied(id: String): Boolean {
         val raw = prefs.displayOverrideSnapshot ?: return false
         return runCatching { JSONObject(raw).has(id) }.getOrDefault(false)
     }
 
+    /** Applies the overrides. Returns false if they were already applied (each connect sends several broadcasts). */
     @Synchronized
-    fun onConnected() {
-        if (isActive) return // Each connect sends several broadcasts; only handle the first
+    fun onConnected(): Boolean {
+        if (isActive) return false
 
         val snapshot = JSONObject()
         overrides.forEach { override ->
@@ -54,6 +62,7 @@ class DisplayOverrideManager @Inject constructor(
             Log.i(TAG, "Applied ${override.id}: $saved -> $target")
         }
         prefs.displayOverrideSnapshot = snapshot.toString()
+        return true
     }
 
     @Synchronized

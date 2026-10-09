@@ -34,7 +34,7 @@ fun OdinTopAppBar(deviceVersion: String) = TopAppBar(title = {
             modifier = Modifier.padding(end = 4.dp),
         )
         Text(
-            text = "$deviceVersion\n${BuildConfig.VERSION_NAME}",
+            text = "$deviceVersion\n${BuildConfig.VERSION_NAME}\n${BuildConfig.BUILD_TIME}",
             style = MaterialTheme.typography.labelMedium,
             textAlign = TextAlign.End,
             modifier = Modifier.padding(end = 16.dp),

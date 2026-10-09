@@ -12,39 +12,51 @@ class ControllerStyleOverride(
     private val executor: ShellExecutor,
     private val prefs: SharedPrefsRepo,
 ) : DisplayOverride {
-    override val id = "controller_style"
+    override val id = ID
 
     override fun target() = prefs.videoOutputControllerStyle?.takeIf { it != ControllerStyle.Unknown.id }
 
     override fun read() = ControllerStyle.getStyle(executor).id
 
     override fun write(value: String?) = ControllerStyle.getById(value).enable(executor)
+
+    companion object {
+        const val ID = "controller_style"
+    }
 }
 
 class L2R2StyleOverride(
     private val executor: ShellExecutor,
     private val prefs: SharedPrefsRepo,
 ) : DisplayOverride {
-    override val id = "l2r2_style"
+    override val id = ID
 
     override fun target() = prefs.videoOutputL2R2Style?.takeIf { it != L2R2Style.Unknown.id }
 
     override fun read() = L2R2Style.getStyle(executor).id
 
     override fun write(value: String?) = L2R2Style.getById(value).enable(executor)
+
+    companion object {
+        const val ID = "l2r2_style"
+    }
 }
 
 class AspectRatioOverride(
     private val executor: ShellExecutor,
     private val prefs: SharedPrefsRepo,
 ) : DisplayOverride {
-    override val id = "aspect_ratio"
+    override val id = ID
 
     override fun target() = AspectRatio.getById(prefs.videoOutputAspectRatio).forcedSize
 
     override fun read() = AspectRatio.getForcedSize(executor) ?: AspectRatio.NATIVE_SIZE
 
     override fun write(value: String?) = AspectRatio.setForcedSize(executor, value?.takeIf { it != AspectRatio.NATIVE_SIZE })
+
+    companion object {
+        const val ID = "aspect_ratio"
+    }
 }
 
 class SaturationOverride(

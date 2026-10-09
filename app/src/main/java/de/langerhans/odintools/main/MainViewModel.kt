@@ -1,5 +1,9 @@
 package de.langerhans.odintools.main
 
+import android.hardware.display.DisplayManager
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.KeyEvent
 import androidx.compose.runtime.toMutableStateList
 import androidx.lifecycle.ViewModel
@@ -21,10 +25,12 @@ import de.langerhans.odintools.overrides.SaturationOverride
 import de.langerhans.odintools.tools.DeviceType.NOVA
 import de.langerhans.odintools.tools.DeviceType.ODIN2
 import de.langerhans.odintools.tools.DeviceUtils
+import de.langerhans.odintools.tools.ScreenIdentityReader
 import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.tools.ShellExecutor
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +49,7 @@ class MainViewModel @Inject constructor(
     private val settings: SettingsRepo,
     private val prefs: SharedPrefsRepo,
     private val displayOverrideManager: DisplayOverrideManager,
+    private val screenIdentityReader: ScreenIdentityReader,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiModel())
@@ -50,6 +57,15 @@ class MainViewModel @Inject constructor(
     // Latest saturation to apply while dragging. A StateFlow keeps only the newest value, so a slow shell call
     // never queues up a backlog of intermediate values
     private val saturationPreview = MutableStateFlow<Float?>(null)
+
+    private var lastLoggedScreenKey: String? = null
+
+    // Keeps the "Connected screen" card up to date while the app is open
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) = refreshConnectedScreen()
+        override fun onDisplayRemoved(displayId: Int) = refreshConnectedScreen()
+        override fun onDisplayChanged(displayId: Int) = refreshConnectedScreen()
+    }
     val uiState: StateFlow<MainUiModel> = _uiState.asStateFlow()
 
     private var _controllerStyleOptions = getCurrentControllerStyles().toMutableStateList()
@@ -69,6 +85,8 @@ class MainViewModel @Inject constructor(
             saturationPreview.filterNotNull().collect { settings.setSfSaturation(it) }
         }
 
+        screenIdentityReader.displayManager.registerDisplayListener(displayListener, Handler(Looper.getMainLooper()))
+
         _uiState.update { _ ->
             MainUiModel(
                 currentSaturation = prefs.saturationOverride,
@@ -83,6 +101,37 @@ class MainViewModel @Inject constructor(
                 chargeLimitEnabled = prefs.chargeLimitEnabled,
                 videoOutputOverrideEnabled = prefs.videoOutputOverrideEnabled,
             )
+        }
+        refreshConnectedScreen()
+    }
+
+    override fun onCleared() {
+        screenIdentityReader.displayManager.unregisterDisplayListener(displayListener)
+    }
+
+    /**
+     * Reads the connected screen and the active overrides. Runs again shortly after each change, because the
+     * overrides are applied a moment after the display appears.
+     */
+    fun refreshConnectedScreen() {
+        val readScreen = {
+            val screen = screenIdentityReader.readExternal()
+            if (screen?.key != lastLoggedScreenKey) {
+                Log.i(TAG, "Connected screen: ${screen ?: "none"}")
+                lastLoggedScreenKey = screen?.key
+            }
+            _uiState.update {
+                it.copy(
+                    connectedScreen = screen,
+                    activeOverrideIds = displayOverrideManager.appliedIds(),
+                    saturationDeferred = displayOverrideManager.isApplied(SaturationOverride.ID),
+                )
+            }
+        }
+        readScreen()
+        viewModelScope.launch {
+            delay(REFRESH_DELAY)
+            readScreen()
         }
     }
 
@@ -347,5 +396,10 @@ class MainViewModel @Inject constructor(
         val fileName = "$directory/OdinTools_$timeStamp.log"
         executor
             .executeAsRoot("logcat -d -v threadtime > $fileName")
+    }
+
+    companion object {
+        private const val TAG = "MainViewModel"
+        private const val REFRESH_DELAY = 1500L
     }
 }

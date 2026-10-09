@@ -18,7 +18,7 @@
     <string name="quiet">Quiet</string>
     <string name="smart">Smart</string>
     <string name="sport">Sport</string>
-    <string name="topBarVersions">Device version:\nApp version:</string>
+    <string name="topBarVersions">Device version:\nApp version:\nBuilt:</string>
 
     <string name="quickSettings">Quick Settings</string>
     <string name="controllerStyleDesc">Select which modes to cycle through in the Controller Style quick settings tile.</string>
@@ -39,6 +39,11 @@
     <string name="delete">Delete</string>
 
     <string name="saturation">Display saturation</string>
+    <string name="connectedScreen">Connected screen</string>
+    <string name="noConnectedScreen">No external screen connected</string>
+    <string name="screenMade">made %1$s</string>
+    <string name="overridesActive">Active overrides: %1$s</string>
+    <string name="noOverridesActive">No overrides active</string>
     <string name="reset">Reset</string>
     <string name="display">Display</string>
     <string name="saturationDescription">Saturation of the Nova\'s own screen. Applied live, kept after a reboot. Default is 1.0.</string>
