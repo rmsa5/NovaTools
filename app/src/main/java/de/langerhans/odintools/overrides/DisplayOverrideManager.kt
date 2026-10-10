@@ -6,6 +6,7 @@ import de.langerhans.odintools.data.SharedPrefsRepo
 import de.langerhans.odintools.models.ScreenIdentity
 import de.langerhans.odintools.presets.ScreenPresetRepository
 import de.langerhans.odintools.tools.DisplaySettings
+import de.langerhans.odintools.tools.MonitorBrightness
 import de.langerhans.odintools.tools.ScreenIdentityReader
 import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.tools.ShellExecutor
@@ -41,6 +42,7 @@ class DisplayOverrideManager @Inject constructor(
     private val prefs: SharedPrefsRepo,
     settings: SettingsRepo,
     display: DisplaySettings,
+    monitorBrightness: MonitorBrightness,
     private val presets: ScreenPresetRepository,
     private val screenIdentityReader: ScreenIdentityReader,
 ) {
@@ -53,6 +55,7 @@ class DisplayOverrideManager @Inject constructor(
         ColorModeOverride(display, settings),
         TintOverride(display),
         SaturationOverride(settings),
+        BrightnessOverride(monitorBrightness) { previous -> fillMissingSavedValue(BrightnessOverride.ID, previous) },
     )
 
     // Guards the snapshot between the requests and the UI (updateSavedValue)
@@ -164,6 +167,18 @@ class DisplayOverrideManager @Inject constructor(
         }
     }
 
+    /** Records [value] as the one to go back to for [id], if it wasn't known when the snapshot was taken. */
+    private fun fillMissingSavedValue(id: String, value: String) {
+        synchronized(lock) {
+            val snapshot = loadSnapshot() ?: return
+            val entry = snapshot.entries[id] ?: return
+            if (entry.saved != null) return
+            entry.saved = value
+            saveSnapshot(snapshot)
+            Log.i(TAG, "Saved $id = $value (read once available)")
+        }
+    }
+
     private suspend fun connect(disconnectsSoFar: Int) {
         if (isActive) return // Each connection sends several broadcasts
 
@@ -205,6 +220,7 @@ class DisplayOverrideManager @Inject constructor(
         overrides.forEach { override ->
             val entry = snapshot.entries[override.id] ?: return@forEach
             val applied = entry.applied ?: return@forEach // Left unchanged by the preset
+            if (!override.restoreOnDisconnect) return@forEach
             val current = override.read()
             if (current == applied || current == entry.saved) {
                 // Also written when it already looks restored: harmless, and a reading taken during the display

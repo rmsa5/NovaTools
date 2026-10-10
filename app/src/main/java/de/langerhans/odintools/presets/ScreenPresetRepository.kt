@@ -135,6 +135,7 @@ class ScreenPresetRepository @Inject constructor(
                 preset.refreshRate?.let { "refresh=$it" },
                 preset.colorMode?.let { "colorMode=$it" },
                 preset.tint?.let { "tint=$it" },
+                preset.brightness?.let { "brightness=${it}nits" },
             ).ifEmpty { listOf("no changes") }.joinToString(", ")
             return "#${preset.id} \"${preset.name}\" (position ${preset.position}, $screen): $settings"
         }

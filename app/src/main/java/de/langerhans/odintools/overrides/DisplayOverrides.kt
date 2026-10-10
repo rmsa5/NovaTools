@@ -5,6 +5,7 @@ import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.tools.DisplaySettings
+import de.langerhans.odintools.tools.MonitorBrightness
 import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.tools.ShellExecutor
 
@@ -131,5 +132,34 @@ class TintOverride(
 
     companion object {
         const val ID = "tint"
+    }
+}
+
+/**
+ * Brightness of the external display itself, for displays that take it over USB. The display keeps the value
+ * (even across power cuts), and other computers set their own on connect, so nothing is restored on disconnect.
+ */
+class BrightnessOverride(
+    private val brightness: MonitorBrightness,
+    /**
+     * Gets the display's value from just before NovaTools changes it. On connect the display's USB side usually
+     * isn't there yet when the other settings are saved, so this fills in the value to go back to.
+     */
+    private val onPreviousValue: (String) -> Unit,
+) : DisplayOverride {
+    override val id = ID
+
+    override val restoreOnDisconnect = false
+
+    override fun target(preset: ScreenPresetEntity) = preset.brightness?.let { it * MonitorBrightness.UNITS_PER_NIT }?.toString()
+
+    override fun read() = brightness.get()?.toString()
+
+    override fun write(value: String?) {
+        value?.toIntOrNull()?.let { brightness.setInBackground(it) { previous -> onPreviousValue(previous.toString()) } }
+    }
+
+    companion object {
+        const val ID = "brightness"
     }
 }

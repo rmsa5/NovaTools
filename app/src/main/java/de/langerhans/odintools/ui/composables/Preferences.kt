@@ -72,6 +72,7 @@ import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.models.ScreenIdentity
 import de.langerhans.odintools.overrides.ActivePreset
 import de.langerhans.odintools.overrides.AspectRatioOverride
+import de.langerhans.odintools.overrides.BrightnessOverride
 import de.langerhans.odintools.overrides.ColorModeOverride
 import de.langerhans.odintools.overrides.ControllerStyleOverride
 import de.langerhans.odintools.overrides.RefreshRateOverride
@@ -319,6 +320,7 @@ private fun overrideLabel(id: String) = stringResource(
         RefreshRateOverride.ID -> R.string.refreshRate
         ColorModeOverride.ID -> R.string.colorMode
         TintOverride.ID -> R.string.tint
+        BrightnessOverride.ID -> R.string.externalBrightness
         else -> R.string.unknown
     },
 )

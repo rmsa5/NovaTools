@@ -392,6 +392,7 @@ private fun presetChanges(preset: ScreenPresetEntity): String {
         preset.refreshRate?.let { refreshRateLabel(it) },
         preset.colorMode?.let { "${stringResource(id = R.string.colorMode)}: ${colorModeLabel(it)}" },
         preset.tint?.let { "${stringResource(id = R.string.tint)}: ${tintLabel(it)}" },
+        preset.brightness?.let { "${stringResource(id = R.string.externalBrightness)}: ${stringResource(id = R.string.nitsValue, it)}" },
     )
     return when {
         changes.isEmpty() && preset.isDefault -> stringResource(id = R.string.tracksNovaScreen)

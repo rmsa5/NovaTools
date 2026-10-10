@@ -21,4 +21,11 @@ interface DisplayOverride {
 
     /** Puts the given value into effect. */
     fun write(value: String?)
+
+    /**
+     * Whether disconnecting puts the saved value back. False for settings that belong to the external screen
+     * itself (it's gone after a disconnect, and keeps its own value for next time).
+     */
+    val restoreOnDisconnect: Boolean
+        get() = true
 }

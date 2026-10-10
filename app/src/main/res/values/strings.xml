@@ -132,4 +132,8 @@
     <string name="tintHue">Hue</string>
     <string name="tintStrength">Strength</string>
     <string name="novaDeferredNote">While %1$s is connected, its preset decides: %2$s. Your changes to those apply when it\'s disconnected.</string>
+    <string name="externalBrightness">Screen brightness</string>
+    <string name="brightnessUnchanged">Leave the screen\'s brightness as it is</string>
+    <string name="nitsValue">%1$d nits</string>
+    <string name="externalBrightnessNote">For screens whose brightness is set over USB (Apple Studio Display, Studio Display XDR, Pro Display XDR). Applied each time the screen connects.</string>
 </resources>

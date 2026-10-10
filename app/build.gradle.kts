@@ -67,6 +67,11 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            // Installs native files as real files on the device: libhidfeature.so is a small program NovaTools
+            // runs (display brightness over USB), not a library, so it must exist as an executable file
+            useLegacyPackaging = true
+        }
     }
 }
 

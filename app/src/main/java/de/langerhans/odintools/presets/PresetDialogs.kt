@@ -42,6 +42,7 @@ import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.tools.DisplaySettings
+import de.langerhans.odintools.tools.MonitorBrightness
 import de.langerhans.odintools.ui.composables.SpinnerDialogPreference
 import kotlin.math.roundToInt
 
@@ -75,6 +76,8 @@ fun PresetEditorDialog(
     var tint by remember { mutableStateOf(TintChoice.from(initial.tint)) }
     var trackSaturation by remember { mutableStateOf(initial.saturation == null) }
     var saturation by remember { mutableFloatStateOf(initial.saturation ?: 1.0f) }
+    var trackBrightness by remember { mutableStateOf(initial.brightness == null) }
+    var brightness by remember { mutableFloatStateOf((initial.brightness ?: DEFAULT_BRIGHTNESS).toFloat()) }
 
     SettingsDialogFrame(
         title = title,
@@ -88,6 +91,7 @@ fun PresetEditorDialog(
                 colorMode = TRACK
                 tint = TintChoice.from(null)
                 trackSaturation = true
+                trackBrightness = true
             }
         } else {
             null
@@ -102,6 +106,7 @@ fun PresetEditorDialog(
                     colorMode = colorMode.takeUnless { it == TRACK }?.toIntOrNull(),
                     tint = tint.value,
                     saturation = saturation.takeUnless { trackSaturation },
+                    brightness = brightness.roundToInt().takeUnless { trackBrightness },
                 ),
             )
         },
@@ -142,8 +147,42 @@ fun PresetEditorDialog(
             Switch(checked = trackSaturation, onCheckedChange = { trackSaturation = it })
         }
         SaturationSlider(value = saturation, enabled = !trackSaturation) { saturation = it }
+        // The display's own brightness, for displays that take it over USB. For the default preset, "track" means
+        // leaving the display's brightness as it is
+        Text(text = stringResource(id = R.string.externalBrightness), modifier = Modifier.padding(start = 8.dp, top = 8.dp))
+        Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = if (initial.isDefault) stringResource(id = R.string.brightnessUnchanged) else trackLabel,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(checked = trackBrightness, onCheckedChange = { trackBrightness = it })
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
+            Slider(
+                value = brightness,
+                valueRange = MonitorBrightness.MIN_NITS.toFloat()..MonitorBrightness.MAX_NITS.toFloat(),
+                enabled = !trackBrightness,
+                // Steps of 5 nits, but the minimum (4) stays reachable
+                onValueChange = { brightness = maxOf(MonitorBrightness.MIN_NITS.toFloat(), (it / 5f).roundToInt() * 5f) },
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 4.dp),
+            )
+            Text(
+                text = stringResource(id = R.string.nitsValue, brightness.roundToInt()),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
+        Text(
+            text = stringResource(id = R.string.externalBrightnessNote),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(start = 8.dp),
+        )
     }
 }
+
+private const val DEFAULT_BRIGHTNESS = 200
 
 /**
  * Edits the Nova screen's own settings. They apply right away, except the ones a connected screen's preset

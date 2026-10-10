@@ -33,6 +33,8 @@ data class ScreenPresetEntity(
     val colorMode: Int? = null,
     /** DisplaySettings.TINT_* or a custom RGB colour. */
     val tint: Int? = null,
+    /** External display brightness in nits, for displays that take it over USB. */
+    val brightness: Int? = null,
 ) {
     /** True if this preset is for [screen]'s model. The default preset matches no screen in particular. */
     fun matches(screen: ScreenIdentity): Boolean =
@@ -50,6 +52,7 @@ data class ScreenPresetEntity(
             refreshRate = refreshRate ?: default.refreshRate,
             colorMode = colorMode ?: default.colorMode,
             tint = tint ?: default.tint,
+            brightness = brightness ?: default.brightness,
         )
     }
 
