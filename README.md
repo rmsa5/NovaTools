@@ -37,3 +37,12 @@ by this app in a future update. The app will warn you accordingly if that's the 
 #### App overrides
 ![image](docs/app_overrides.png)
 ![image](docs/override_config.png)
+
+### License
+
+NovaTools is free software, licensed under the **GNU General Public License v3.0 or later** (see [LICENSE](LICENSE)).
+You can use, study, share and modify it. If you distribute it, a modified version, or software that includes its code,
+you must release that under the same licence, with its source code.
+
+NovaTools is based on [OdinTools](https://github.com/langerhans/OdinTools) by Maximilian Keller, released under the MIT
+License. Its original code keeps that copyright notice and licence: see [LICENSE-ODINTOOLS](LICENSE-ODINTOOLS).
