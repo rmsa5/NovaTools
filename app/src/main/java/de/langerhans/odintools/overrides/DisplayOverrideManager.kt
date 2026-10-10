@@ -6,6 +6,7 @@ import de.langerhans.odintools.data.SharedPrefsRepo
 import de.langerhans.odintools.models.ScreenIdentity
 import de.langerhans.odintools.presets.ScreenPresetRepository
 import de.langerhans.odintools.tools.DisplaySettings
+import de.langerhans.odintools.tools.HandheldScreen
 import de.langerhans.odintools.tools.MonitorBrightness
 import de.langerhans.odintools.tools.ScreenIdentityReader
 import de.langerhans.odintools.tools.SettingsRepo
@@ -43,6 +44,7 @@ class DisplayOverrideManager @Inject constructor(
     settings: SettingsRepo,
     display: DisplaySettings,
     monitorBrightness: MonitorBrightness,
+    private val handheldScreen: HandheldScreen,
     private val presets: ScreenPresetRepository,
     private val screenIdentityReader: ScreenIdentityReader,
 ) {
@@ -56,6 +58,7 @@ class DisplayOverrideManager @Inject constructor(
         TintOverride(display),
         SaturationOverride(settings),
         BrightnessOverride(monitorBrightness) { previous -> fillMissingSavedValue(BrightnessOverride.ID, previous) },
+        NovaScreenOverride(handheldScreen),
     )
 
     // Guards the snapshot between the requests and the UI (updateSavedValue)
@@ -210,12 +213,26 @@ class DisplayOverrideManager @Inject constructor(
         }
     }
 
-    private fun disconnect() {
-        synchronized(lock) { restoreAll() }
+    private suspend fun disconnect() {
+        val hadPreset = synchronized(lock) { restoreAll() }
+        if (hadPreset) ensureHandheldScreenOn()
     }
 
-    private fun restoreAll() {
-        val snapshot = loadSnapshot() ?: return
+    /**
+     * Safety net: with no external screen, the Nova's own screen must be on. Restoring Retroid's "turn off the
+     * screen" setting right at the unplug could race with Retroid's own disconnect handling and leave it dark.
+     */
+    private suspend fun ensureHandheldScreenOn() {
+        delay(SCREEN_CHECK_DELAY)
+        if (!isConnected() && handheldScreen.isBacklightOn() == false) {
+            handheldScreen.setBacklight(true)
+            Log.w(TAG, "The Nova's screen was still off after the disconnect: turned it back on")
+        }
+    }
+
+    /** Returns false if no preset was applied. */
+    private fun restoreAll(): Boolean {
+        val snapshot = loadSnapshot() ?: return false
         Log.i(TAG, "Disconnected, restoring after preset \"${snapshot.presetName}\"")
         overrides.forEach { override ->
             val entry = snapshot.entries[override.id] ?: return@forEach
@@ -232,6 +249,7 @@ class DisplayOverrideManager @Inject constructor(
             }
         }
         clearSnapshot()
+        return true
     }
 
     /**
@@ -364,5 +382,6 @@ class DisplayOverrideManager @Inject constructor(
         // Up to 5 seconds for Android to report the screen's identity
         private const val IDENTITY_ATTEMPTS = 20
         private const val IDENTITY_POLL_INTERVAL = 250L
+        private const val SCREEN_CHECK_DELAY = 2000L
     }
 }

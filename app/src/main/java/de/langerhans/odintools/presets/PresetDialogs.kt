@@ -53,6 +53,8 @@ data class NovaScreenValues(
     val colorMode: Int? = null,
     val tint: Int? = null,
     val saturation: Float = 1.0f,
+    /** Retroid's setting: turn the Nova's screen off while an external screen is connected. */
+    val turnOffWhenConnected: Boolean = true,
 )
 
 // Key used in the choice lists for "track" (same as the default preset / the Nova screen)
@@ -77,6 +79,9 @@ fun PresetEditorDialog(
     var trackSaturation by remember { mutableStateOf(initial.saturation == null) }
     var saturation by remember { mutableFloatStateOf(initial.saturation ?: 1.0f) }
     var trackBrightness by remember { mutableStateOf(initial.brightness == null) }
+    var novaScreen by remember {
+        mutableStateOf(initial.novaScreenOn?.let { if (it) NOVA_SCREEN_ON else NOVA_SCREEN_OFF } ?: TRACK)
+    }
     var brightness by remember { mutableFloatStateOf((initial.brightness ?: DEFAULT_BRIGHTNESS).toFloat()) }
 
     SettingsDialogFrame(
@@ -92,6 +97,7 @@ fun PresetEditorDialog(
                 tint = TintChoice.from(null)
                 trackSaturation = true
                 trackBrightness = true
+                novaScreen = TRACK
             }
         } else {
             null
@@ -107,6 +113,11 @@ fun PresetEditorDialog(
                     tint = tint.value,
                     saturation = saturation.takeUnless { trackSaturation },
                     brightness = brightness.roundToInt().takeUnless { trackBrightness },
+                    novaScreenOn = when (novaScreen) {
+                        NOVA_SCREEN_ON -> true
+                        NOVA_SCREEN_OFF -> false
+                        else -> null
+                    },
                 ),
             )
         },
@@ -141,6 +152,15 @@ fun PresetEditorDialog(
             selectedKey = colorMode,
         ) { colorMode = it }
         TintChooser(choice = tint, trackLabel = trackLabel) { tint = it }
+        SpinnerDialogPreference(
+            label = R.string.novaScreenWhileConnected,
+            items = listOf(
+                TRACK to trackLabel,
+                NOVA_SCREEN_ON to stringResource(id = R.string.novaScreenOn),
+                NOVA_SCREEN_OFF to stringResource(id = R.string.novaScreenOff),
+            ),
+            selectedKey = novaScreen,
+        ) { novaScreen = it }
         Text(text = stringResource(id = R.string.saturation), modifier = Modifier.padding(start = 8.dp, top = 8.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(text = trackLabel, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
@@ -183,6 +203,8 @@ fun PresetEditorDialog(
 }
 
 private const val DEFAULT_BRIGHTNESS = 200
+private const val NOVA_SCREEN_ON = "on"
+private const val NOVA_SCREEN_OFF = "off"
 
 /**
  * Edits the Nova screen's own settings. They apply right away, except the ones a connected screen's preset
@@ -200,6 +222,7 @@ fun NovaScreenDialog(
     var colorMode by remember { mutableStateOf((initial.colorMode ?: DisplaySettings.COLOR_MODE_STANDARD).toString()) }
     var tint by remember { mutableStateOf(TintChoice.from(initial.tint ?: DisplaySettings.TINT_NATURE)) }
     var saturation by remember { mutableFloatStateOf(initial.saturation) }
+    var turnOffWhenConnected by remember { mutableStateOf(initial.turnOffWhenConnected) }
 
     SettingsDialogFrame(
         title = stringResource(id = R.string.novaScreen),
@@ -213,6 +236,7 @@ fun NovaScreenDialog(
                     colorMode = colorMode.toIntOrNull(),
                     tint = tint.value,
                     saturation = saturation,
+                    turnOffWhenConnected = turnOffWhenConnected,
                 ),
             )
         },
@@ -239,6 +263,13 @@ fun NovaScreenDialog(
         TintChooser(choice = tint, trackLabel = null) { tint = it }
         Text(text = stringResource(id = R.string.saturation), modifier = Modifier.padding(start = 8.dp, top = 8.dp))
         SaturationSlider(value = saturation, enabled = true) { saturation = it }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = stringResource(id = R.string.turnOffWhenConnected), modifier = Modifier.weight(1f))
+            Switch(checked = turnOffWhenConnected, onCheckedChange = { turnOffWhenConnected = it })
+        }
         if (deferredNote != null) {
             Text(
                 text = deferredNote,

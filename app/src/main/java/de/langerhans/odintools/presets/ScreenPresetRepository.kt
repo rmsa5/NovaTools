@@ -136,6 +136,7 @@ class ScreenPresetRepository @Inject constructor(
                 preset.colorMode?.let { "colorMode=$it" },
                 preset.tint?.let { "tint=$it" },
                 preset.brightness?.let { "brightness=${it}nits" },
+                preset.novaScreenOn?.let { "novaScreen=${if (it) "on" else "off"}" },
             ).ifEmpty { listOf("no changes") }.joinToString(", ")
             return "#${preset.id} \"${preset.name}\" (position ${preset.position}, $screen): $settings"
         }

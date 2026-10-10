@@ -13,10 +13,12 @@ import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.overrides.AspectRatioOverride
 import de.langerhans.odintools.overrides.ColorModeOverride
 import de.langerhans.odintools.overrides.DisplayOverrideManager
+import de.langerhans.odintools.overrides.NovaScreenOverride
 import de.langerhans.odintools.overrides.RefreshRateOverride
 import de.langerhans.odintools.overrides.SaturationOverride
 import de.langerhans.odintools.overrides.TintOverride
 import de.langerhans.odintools.tools.DeviceUtils
+import de.langerhans.odintools.tools.HandheldScreen
 import de.langerhans.odintools.tools.ScreenIdentityReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -33,6 +35,7 @@ class ScreensViewModel @Inject constructor(
     private val displayOverrideManager: DisplayOverrideManager,
     private val screenIdentityReader: ScreenIdentityReader,
     private val prefs: SharedPrefsRepo,
+    private val handheldScreen: HandheldScreen,
     deviceUtils: DeviceUtils,
 ) : ViewModel() {
 
@@ -81,9 +84,20 @@ class ScreensViewModel @Inject constructor(
             }
         }
         read()
+        loadNovaValues()
         viewModelScope.launch {
             delay(REFRESH_DELAY)
             read()
+            loadNovaValues()
+        }
+    }
+
+    /** Turns the Nova's screen on or off for this connection only (Retroid's setting and the presets are unchanged). */
+    fun toggleHandheldScreen() {
+        val turnOn = !_uiState.value.novaScreenLit
+        viewModelScope.launch(Dispatchers.IO) {
+            handheldScreen.setBacklight(turnOn)
+            loadNovaValues()
         }
     }
 
@@ -101,8 +115,10 @@ class ScreensViewModel @Inject constructor(
                 colorMode = values[ColorModeOverride.ID]?.toIntOrNull(),
                 tint = values[TintOverride.ID]?.toIntOrNull(),
                 saturation = prefs.saturationOverride,
+                turnOffWhenConnected = values[NovaScreenOverride.ID] != NovaScreenOverride.KEEP_ON,
             )
-            _uiState.update { it.copy(novaScreen = nova) }
+            val backlightOn = handheldScreen.isBacklightOn()
+            _uiState.update { it.copy(novaScreen = nova, handheldBacklightOn = backlightOn) }
         }
     }
 
@@ -129,6 +145,12 @@ class ScreensViewModel @Inject constructor(
         }
         if (values.tint != old.tint && values.tint != null) {
             displayOverrideManager.setNovaValue(TintOverride.ID, values.tint.toString())
+        }
+        if (values.turnOffWhenConnected != old.turnOffWhenConnected) {
+            displayOverrideManager.setNovaValue(
+                NovaScreenOverride.ID,
+                if (values.turnOffWhenConnected) NovaScreenOverride.TURN_OFF else NovaScreenOverride.KEEP_ON,
+            )
         }
         if (values.saturation != old.saturation) {
             prefs.saturationOverride = values.saturation

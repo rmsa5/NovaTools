@@ -46,6 +46,7 @@ import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.overrides.AspectRatioOverride
 import de.langerhans.odintools.overrides.ColorModeOverride
+import de.langerhans.odintools.overrides.NovaScreenOverride
 import de.langerhans.odintools.overrides.RefreshRateOverride
 import de.langerhans.odintools.overrides.SaturationOverride
 import de.langerhans.odintools.overrides.TintOverride
@@ -122,7 +123,13 @@ fun ScreensScreen(viewModel: ScreensViewModel = hiltViewModel()) {
             ),
         ) {
             item { SettingsHeader(R.string.novaScreen) }
-            item { NovaScreenItem(uiState) { viewModel.novaScreenClicked() } }
+            item {
+                NovaScreenItem(
+                    uiState = uiState,
+                    onClick = { viewModel.novaScreenClicked() },
+                    onToggleScreen = { viewModel.toggleHandheldScreen() },
+                )
+            }
 
             item { SettingsHeader(R.string.externalScreens) }
             val screen = uiState.connectedScreen
@@ -182,20 +189,31 @@ fun ScreensScreen(viewModel: ScreensViewModel = hiltViewModel()) {
 
 /** The Nova's built-in screen: the baseline that external screen presets are applied on top of. */
 @Composable
-private fun NovaScreenItem(uiState: ScreensUiModel, onClick: () -> Unit) {
+private fun NovaScreenItem(uiState: ScreensUiModel, onClick: () -> Unit, onToggleScreen: () -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
     // A preset applied to a connected screen also changes the Nova's screen if both are on (the setting is global)
     val replacing = uiState.activePreset
+        ?.takeIf { uiState.novaScreenLit }
         ?.takeIf { SaturationOverride.ID in it.appliedIds }
         ?.let { active -> uiState.presets.firstOrNull { it.id == active.id } }
     val default = uiState.defaultPreset
     val replacingSaturation = replacing?.let { if (default != null) it.withDefaults(default) else it }?.saturation
     val nova = uiState.novaScreen
     val saturation = String.format(locale, "%.1f", nova.saturation)
-    ScreenRow(icon = R.drawable.ic_gamepad, onClick = onClick) {
+    // While docked, the Nova's screen can be switched on or off for this connection only
+    val toggle: (@Composable () -> Unit)? = if (uiState.connectedScreen != null) {
+        {
+            TextButton(onClick = onToggleScreen) {
+                Text(text = stringResource(id = if (uiState.novaScreenLit) R.string.turnOffNow else R.string.turnOnNow))
+            }
+        }
+    } else {
+        null
+    }
+    ScreenRow(icon = R.drawable.ic_gamepad, onClick = onClick, trailing = toggle) {
         TitleWithBadge(
             title = stringResource(id = R.string.novaScreen),
-            badge = if (uiState.handheldScreenOn) BadgeStyle.Active else null,
+            badge = if (uiState.novaScreenLit) BadgeStyle.Active else BadgeStyle.Off,
         )
         Text(
             text = stringResource(id = R.string.novaScreenDescription),
@@ -207,6 +225,7 @@ private fun NovaScreenItem(uiState: ScreensUiModel, onClick: () -> Unit) {
                 refreshRateLabel(nova.refreshRate),
                 nova.colorMode?.let { colorModeLabel(it) },
                 nova.tint?.let { "${stringResource(id = R.string.tint)}: ${tintLabel(it)}" },
+                stringResource(id = if (nova.turnOffWhenConnected) R.string.offWhenConnected else R.string.onWhenConnected),
             ).joinToString(" · "),
             style = MaterialTheme.typography.bodySmall,
         )
@@ -344,7 +363,7 @@ private fun ScreenRow(
     }
 }
 
-private enum class BadgeStyle { Active, Connected }
+private enum class BadgeStyle { Active, Connected, Off }
 
 @Composable
 private fun TitleWithBadge(title: String, badge: BadgeStyle?) {
@@ -360,7 +379,13 @@ private fun TitleWithBadge(title: String, badge: BadgeStyle?) {
                 modifier = Modifier.padding(start = 8.dp),
             ) {
                 Text(
-                    text = stringResource(id = if (filled) R.string.badgeActive else R.string.badgeConnected),
+                    text = stringResource(
+                        id = when (badge) {
+                            BadgeStyle.Active -> R.string.badgeActive
+                            BadgeStyle.Connected -> R.string.badgeConnected
+                            BadgeStyle.Off -> R.string.badgeOff
+                        },
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                 )
@@ -393,6 +418,10 @@ private fun presetChanges(preset: ScreenPresetEntity): String {
         preset.colorMode?.let { "${stringResource(id = R.string.colorMode)}: ${colorModeLabel(it)}" },
         preset.tint?.let { "${stringResource(id = R.string.tint)}: ${tintLabel(it)}" },
         preset.brightness?.let { "${stringResource(id = R.string.externalBrightness)}: ${stringResource(id = R.string.nitsValue, it)}" },
+        preset.novaScreenOn?.let {
+            "${stringResource(id = R.string.novaScreenWhileConnected)}: " +
+                stringResource(id = if (it) R.string.novaScreenOn else R.string.novaScreenOff)
+        },
     )
     return when {
         changes.isEmpty() && preset.isDefault -> stringResource(id = R.string.tracksNovaScreen)
@@ -409,6 +438,7 @@ private val NOVA_SETTING_IDS = setOf(
     ColorModeOverride.ID,
     TintOverride.ID,
     SaturationOverride.ID,
+    NovaScreenOverride.ID,
 )
 
 @Composable
@@ -418,6 +448,7 @@ private fun settingLabel(id: String) = stringResource(
         RefreshRateOverride.ID -> R.string.refreshRate
         ColorModeOverride.ID -> R.string.colorMode
         TintOverride.ID -> R.string.tint
+        NovaScreenOverride.ID -> R.string.turnOffWhenConnected
         else -> R.string.saturation
     },
 )

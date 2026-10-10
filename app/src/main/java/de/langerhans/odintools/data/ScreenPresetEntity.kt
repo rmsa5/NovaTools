@@ -35,6 +35,8 @@ data class ScreenPresetEntity(
     val tint: Int? = null,
     /** External display brightness in nits, for displays that take it over USB. */
     val brightness: Int? = null,
+    /** Whether the Nova's own screen stays on while this screen is connected. */
+    val novaScreenOn: Boolean? = null,
 ) {
     /** True if this preset is for [screen]'s model. The default preset matches no screen in particular. */
     fun matches(screen: ScreenIdentity): Boolean =
@@ -53,6 +55,7 @@ data class ScreenPresetEntity(
             colorMode = colorMode ?: default.colorMode,
             tint = tint ?: default.tint,
             brightness = brightness ?: default.brightness,
+            novaScreenOn = novaScreenOn ?: default.novaScreenOn,
         )
     }
 

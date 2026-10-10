@@ -78,6 +78,7 @@ import de.langerhans.odintools.overrides.ControllerStyleOverride
 import de.langerhans.odintools.overrides.RefreshRateOverride
 import de.langerhans.odintools.overrides.TintOverride
 import de.langerhans.odintools.overrides.L2R2StyleOverride
+import de.langerhans.odintools.overrides.NovaScreenOverride
 import de.langerhans.odintools.overrides.SaturationOverride
 import de.langerhans.odintools.ui.theme.Typography
 import kotlin.math.roundToInt
@@ -321,6 +322,7 @@ private fun overrideLabel(id: String) = stringResource(
         ColorModeOverride.ID -> R.string.colorMode
         TintOverride.ID -> R.string.tint
         BrightnessOverride.ID -> R.string.externalBrightness
+        NovaScreenOverride.ID -> R.string.novaScreenWhileConnected
         else -> R.string.unknown
     },
 )

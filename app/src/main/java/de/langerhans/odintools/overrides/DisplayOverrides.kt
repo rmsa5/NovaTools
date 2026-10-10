@@ -5,6 +5,7 @@ import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.tools.DisplaySettings
+import de.langerhans.odintools.tools.HandheldScreen
 import de.langerhans.odintools.tools.MonitorBrightness
 import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.tools.ShellExecutor
@@ -161,5 +162,29 @@ class BrightnessOverride(
 
     companion object {
         const val ID = "brightness"
+    }
+}
+
+/**
+ * Whether the Nova's own screen stays on while the external screen is connected. Applied through Retroid's own
+ * setting (value "1" = turn it off, "0" = keep it on), which Retroid applies live and shows in its settings page.
+ */
+class NovaScreenOverride(
+    private val handheld: HandheldScreen,
+) : DisplayOverride {
+    override val id = ID
+
+    override fun target(preset: ScreenPresetEntity) = preset.novaScreenOn?.let { if (it) KEEP_ON else TURN_OFF }
+
+    override fun read() = if (handheld.getTurnOffWhenConnected()) TURN_OFF else KEEP_ON
+
+    override fun write(value: String?) {
+        value?.let { handheld.setTurnOffWhenConnected(it == TURN_OFF) }
+    }
+
+    companion object {
+        const val ID = "nova_screen"
+        const val TURN_OFF = "1"
+        const val KEEP_ON = "0"
     }
 }

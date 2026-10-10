@@ -136,4 +136,13 @@
     <string name="brightnessUnchanged">Leave the screen\'s brightness as it is</string>
     <string name="nitsValue">%1$d nits</string>
     <string name="externalBrightnessNote">For screens whose brightness is set over USB (Apple Studio Display, Studio Display XDR, Pro Display XDR). Applied each time the screen connects.</string>
+    <string name="novaScreenWhileConnected">Nova screen while connected</string>
+    <string name="novaScreenOn">On</string>
+    <string name="novaScreenOff">Off</string>
+    <string name="turnOffWhenConnected">Turn off when an external screen is connected</string>
+    <string name="offWhenConnected">Off when connected</string>
+    <string name="onWhenConnected">On when connected</string>
+    <string name="badgeOff">Off</string>
+    <string name="turnOnNow">Turn on</string>
+    <string name="turnOffNow">Turn off</string>
 </resources>
