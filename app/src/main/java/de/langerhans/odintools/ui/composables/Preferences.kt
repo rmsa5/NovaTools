@@ -213,6 +213,7 @@ fun CheckBoxDialogPreference(
     onSave: (items: List<CheckboxPreferenceUiModel>) -> Unit,
 ) {
     AlertDialog(onDismissRequest = {}, confirmButton = {
+        BlockGamepadInDialog()
         DialogButton(text = stringResource(id = R.string.save)) {
             onSave(items)
         }
@@ -434,6 +435,7 @@ fun VibrationPreferenceDialog(initialValue: Int, onCancel: () -> Unit, onSave: (
     }
 
     AlertDialog(onDismissRequest = {}, confirmButton = {
+        BlockGamepadInDialog()
         DialogButton(text = stringResource(id = R.string.save)) {
             onSave(userValue)
         }
@@ -547,6 +549,7 @@ fun ChargeLimitPreferenceDialog(initialValue: ClosedRange<Int>, onCancel: () -> 
     AlertDialog(
         onDismissRequest = {},
         confirmButton = {
+            BlockGamepadInDialog()
             DialogButton(text = stringResource(id = R.string.save)) {
                 onSave(start..end)
             }

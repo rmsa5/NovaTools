@@ -145,4 +145,25 @@
     <string name="badgeOff">Off</string>
     <string name="turnOnNow">Turn on</string>
     <string name="turnOffNow">Turn off</string>
+    <string name="stickLights">Stick lights</string>
+    <string name="stickLightsDescription">Joystick LEDs that follow the sticks: the side you push lights up.</string>
+    <string name="stickLightsFollow">Lights follow the sticks</string>
+    <string name="stickLightsFollowDescription">Replaces Retroid\'s joystick light colour while on. Switching it off brings Retroid\'s settings back.</string>
+    <string name="stickLightsLinked">Same settings for both sticks</string>
+    <string name="stickLightsColour">Colour</string>
+    <string name="stickLightsHue">Hue</string>
+    <string name="stickLightsSaturation">Saturation</string>
+    <string name="stickLightsColourFollowsPush">Colour changes as you push</string>
+    <string name="stickLightsFullPushColour">Colour at full push</string>
+    <string name="stickLightsBrightness">Brightness</string>
+    <string name="stickLightsMaxBrightness">Maximum</string>
+    <string name="stickLightsBrightnessFollowsPush">Brighter as you push</string>
+    <string name="stickLightsBeam">Beam</string>
+    <string name="stickLightsBeamWidth">Narrowness</string>
+    <string name="stickLightsOpposite">Light the side away from the stick</string>
+    <string name="stickLightsAngles">LED angles</string>
+    <string name="stickLightsAnglesDescription">Each stick\'s 4 LEDs sit on a slightly turned cross. Turn it until the light points exactly where the stick points. Tip: \"Light the side away from the stick\" keeps the lit LED in view.</string>
+    <string name="stickLightsLeftStick">Left stick</string>
+    <string name="stickLightsRightStick">Right stick</string>
+    <string name="stickLightsResetAngles">Reset angles</string>
 </resources>

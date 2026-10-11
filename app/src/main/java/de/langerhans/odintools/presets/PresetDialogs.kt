@@ -43,6 +43,7 @@ import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
 import de.langerhans.odintools.tools.DisplaySettings
 import de.langerhans.odintools.tools.MonitorBrightness
+import de.langerhans.odintools.ui.composables.BlockGamepadInDialog
 import de.langerhans.odintools.ui.composables.SpinnerDialogPreference
 import kotlin.math.roundToInt
 
@@ -424,6 +425,7 @@ private fun SettingsDialogFrame(
     content: @Composable () -> Unit,
 ) {
     Dialog(onDismissRequest = {}) {
+        BlockGamepadInDialog()
         Surface(
             shape = AlertDialogDefaults.shape,
             color = AlertDialogDefaults.containerColor,

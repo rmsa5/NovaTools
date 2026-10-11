@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import de.langerhans.odintools.R
+import de.langerhans.odintools.ui.composables.BlockGamepadInDialog
 import de.langerhans.odintools.ui.composables.OdinTopAppBar
 
 @Composable
@@ -137,6 +138,7 @@ fun AppPickerDialog(apps: List<AppUiModel>, onAppSelected: (String) -> Unit, onD
         onDismissRequest = onDismiss,
         title = {},
         text = {
+            BlockGamepadInDialog()
             val focusManager = LocalFocusManager.current
             if (apps.isEmpty()) {
                 Text(text = stringResource(id = R.string.noOverrideCandidates))

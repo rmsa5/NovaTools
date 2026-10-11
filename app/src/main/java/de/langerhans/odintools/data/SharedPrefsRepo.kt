@@ -6,6 +6,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import de.langerhans.odintools.models.AspectRatio
 import de.langerhans.odintools.models.ControllerStyle
 import de.langerhans.odintools.models.L2R2Style
+import de.langerhans.odintools.models.StickLightSettings
 import javax.inject.Inject
 
 class SharedPrefsRepo @Inject constructor(
@@ -118,6 +119,15 @@ class SharedPrefsRepo @Inject constructor(
         get() = prefs.getFloat(KEY_CURRENT_SF_SATURATION, 1.0f)
         set(value) = prefs.edit().putFloat(KEY_CURRENT_SF_SATURATION, value).apply()
 
+    var stickLights: StickLightSettings
+        get() = StickLightSettings.fromJson(prefs.getString(KEY_STICK_LIGHTS, null))
+        set(value) = prefs.edit().putString(KEY_STICK_LIGHTS, value.toJson()).apply()
+
+    /** Retroid's joystick light settings from before NovaTools took the LEDs over (JSON), or null. */
+    var retroidStickLightsBackup
+        get() = prefs.getString(KEY_RETROID_STICK_LIGHTS_BACKUP, null)
+        set(value) = prefs.edit().putString(KEY_RETROID_STICK_LIGHTS_BACKUP, value).apply()
+
     companion object {
         const val NO_SATURATION_CHANGE = -1f
 
@@ -139,5 +149,7 @@ class SharedPrefsRepo @Inject constructor(
         private const val KEY_DISPLAY_OVERRIDE_SNAPSHOT = "display_override_snapshot"
         private const val KEY_CURRENT_SF_SATURATION = "current_sf_saturation"
         private const val KEY_VIDEO_OUTPUT_L2R2_STYLE = "video_output_override_l2r2_style"
+        private const val KEY_STICK_LIGHTS = "stick_lights"
+        private const val KEY_RETROID_STICK_LIGHTS_BACKUP = "retroid_stick_lights_backup"
     }
 }

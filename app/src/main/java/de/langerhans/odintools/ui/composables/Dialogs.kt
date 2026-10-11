@@ -13,6 +13,7 @@ fun NotAnOdinDialog(onAccept: () -> Unit) {
     AlertDialog(
         onDismissRequest = {},
         confirmButton = {
+            BlockGamepadInDialog()
             DialogButton(text = stringResource(id = R.string.accept)) {
                 onAccept()
             }
@@ -36,6 +37,7 @@ fun PServerNotAvailableDialog() {
     AlertDialog(
         onDismissRequest = {},
         confirmButton = {
+            BlockGamepadInDialog()
             DialogButton(text = stringResource(id = R.string.closeButSad)) {
                 exitProcess(0)
             }
@@ -63,6 +65,7 @@ fun DeleteConfirmDialog(onDelete: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = {},
         confirmButton = {
+            BlockGamepadInDialog()
             DialogButton(text = stringResource(id = R.string.delete), onClick = onDelete)
         },
         dismissButton = {

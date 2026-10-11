@@ -51,6 +51,7 @@ import de.langerhans.odintools.overrides.RefreshRateOverride
 import de.langerhans.odintools.overrides.SaturationOverride
 import de.langerhans.odintools.overrides.TintOverride
 import de.langerhans.odintools.tools.DisplaySettings
+import de.langerhans.odintools.ui.composables.BlockGamepadInDialog
 import de.langerhans.odintools.ui.composables.OdinTopAppBar
 import de.langerhans.odintools.ui.composables.SettingsHeader
 
@@ -100,6 +101,7 @@ fun ScreensScreen(viewModel: ScreensViewModel = hiltViewModel()) {
             onDismissRequest = { viewModel.deleteDismissed() },
             text = { Text(text = stringResource(id = R.string.deletePresetConfirm, presetName(preset))) },
             confirmButton = {
+                BlockGamepadInDialog()
                 TextButton(onClick = { viewModel.deleteConfirmed() }) {
                     Text(text = stringResource(id = R.string.delete), color = Color.Red)
                 }

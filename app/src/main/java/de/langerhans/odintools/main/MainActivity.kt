@@ -30,6 +30,8 @@ import de.langerhans.odintools.R
 import de.langerhans.odintools.appsettings.AppOverrideListScreen
 import de.langerhans.odintools.appsettings.AppOverridesScreen
 import de.langerhans.odintools.presets.ScreensScreen
+import de.langerhans.odintools.sticklights.StickLightsScreen
+import de.langerhans.odintools.tools.DeviceType.NOVA
 import de.langerhans.odintools.tools.DeviceType.ODIN2
 import de.langerhans.odintools.tools.SettingsRepo
 import de.langerhans.odintools.ui.composables.ChargeLimitPreferenceDialog
@@ -44,6 +46,7 @@ import de.langerhans.odintools.ui.composables.SettingsHeader
 import de.langerhans.odintools.ui.composables.SwitchPreference
 import de.langerhans.odintools.ui.composables.SwitchableTriggerPreference
 import de.langerhans.odintools.ui.composables.TriggerPreference
+import de.langerhans.odintools.ui.composables.blockGamepadInput
 import de.langerhans.odintools.ui.composables.VibrationPreferenceDialog
 import de.langerhans.odintools.ui.theme.OdinToolsTheme
 
@@ -52,6 +55,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Temporary: controller input could move sliders while testing the stick lights (see GamepadBlocker.kt)
+        window.blockGamepadInput()
         setContent {
             OdinToolsTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -61,7 +66,11 @@ class MainActivity : ComponentActivity() {
                             SettingsScreen(
                                 navigateToOverrideList = { navController.navigate("override/list") },
                                 navigateToScreens = { navController.navigate("screens") },
+                                navigateToStickLights = { navController.navigate("sticklights") },
                             )
+                        }
+                        composable("sticklights") {
+                            StickLightsScreen()
                         }
                         composable("screens") {
                             ScreensScreen()
@@ -86,6 +95,7 @@ fun SettingsScreen(
     viewModel: MainViewModel = hiltViewModel(),
     navigateToOverrideList: () -> Unit,
     navigateToScreens: () -> Unit,
+    navigateToStickLights: () -> Unit,
 ) {
     val uiState: MainUiModel by viewModel.uiState.collectAsState()
 
@@ -199,6 +209,15 @@ fun SettingsScreen(
                 description = R.string.l2r2modeDesc,
             ) {
                 viewModel.showL2r2StylePreference()
+            }
+            if (uiState.deviceType == NOVA) {
+                SettingsHeader(R.string.stickLights)
+                TriggerPreference(
+                    icon = R.drawable.ic_gamepad,
+                    title = R.string.stickLights,
+                    description = R.string.stickLightsDescription,
+                    onClick = navigateToStickLights,
+                )
             }
             SettingsHeader(R.string.buttons)
             SwitchPreference(

@@ -83,6 +83,7 @@ fun <T> LargeDropdownMenu(
         Dialog(
             onDismissRequest = { expanded = false },
         ) {
+            BlockGamepadInDialog()
             Surface(
                 shape = RoundedCornerShape(12.dp),
             ) {
